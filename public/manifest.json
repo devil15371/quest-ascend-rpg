@@ -1,0 +1,24 @@
+{
+  "short_name": "QuestAscend",
+  "name": "QuestAscend RPG - Gamified Exam Prep & Life Arc",
+  "description": "Gamify your lectures, questions, revisions, and morning quests into an RPG hero level up system.",
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "display": "standalone",
+  "orientation": "portrait"
+}
