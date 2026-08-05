@@ -18,7 +18,8 @@
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.28.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",

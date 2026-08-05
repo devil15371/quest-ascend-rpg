@@ -10,6 +10,7 @@ import LevelUpOverlay from './components/LevelUpOverlay';
 import AddSubjectModal from './components/AddSubjectModal';
 import AddQuestModal from './components/AddQuestModal';
 import MobileBottomNav from './components/MobileBottomNav';
+import ThreeBackground from './components/ThreeBackground';
 
 import { loadUserData, saveUserData } from './utils/storage';
 import { calculateLevel } from './utils/rpgEngine';
@@ -28,7 +29,7 @@ export default function App() {
 
   const [prevLevel, setPrevLevel] = useState(() => calculateLevel(userData.profile.totalExp).level);
 
-  // Initialize native mobile reminders & listeners
+  // Initialize native mobile reminders
   useEffect(() => {
     scheduleMobileReminders();
   }, []);
@@ -46,8 +47,11 @@ export default function App() {
   }, [userData]);
 
   return (
-    <div className="min-h-screen flex flex-col pb-20 md:pb-12 selection:bg-purple-500 selection:text-white">
+    <div className="min-h-screen flex flex-col pb-20 md:pb-12 selection:bg-cyan-500 selection:text-slate-950 relative">
       
+      {/* 3D WebGL Holographic Particle Canvas Background */}
+      <ThreeBackground />
+
       {/* Top Navbar */}
       <Navbar 
         userData={userData}
@@ -61,7 +65,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6 relative z-10">
         
         {/* Guild Master AI Companion Speech Banner */}
         <GuildMasterModal userData={userData} setUserData={setUserData} />
@@ -70,12 +74,13 @@ export default function App() {
         <CharacterCard userData={userData} setUserData={setUserData} />
 
         {/* Desktop Navigation Tabs */}
-        <div className="hidden md:flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-800">
+        <div className="hidden md:flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-800 font-orbitron">
           <button
+            onMouseEnter={() => audio.playHoverSound()}
             onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('subjects'); }}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
               activeTab === 'subjects'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 font-black shadow-lg shadow-cyan-500/25'
                 : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
             }`}
           >
@@ -84,10 +89,11 @@ export default function App() {
           </button>
 
           <button
+            onMouseEnter={() => audio.playHoverSound()}
             onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('quests'); }}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
               activeTab === 'quests'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 font-black shadow-lg shadow-cyan-500/25'
                 : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
             }`}
           >
@@ -96,10 +102,11 @@ export default function App() {
           </button>
 
           <button
+            onMouseEnter={() => audio.playHoverSound()}
             onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('shop'); }}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
               activeTab === 'shop'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 font-black shadow-lg shadow-cyan-500/25'
                 : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
             }`}
           >
@@ -108,15 +115,16 @@ export default function App() {
           </button>
 
           <button
+            onMouseEnter={() => audio.playHoverSound()}
             onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('history'); }}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
               activeTab === 'history'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 font-black shadow-lg shadow-cyan-500/25'
                 : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
             }`}
           >
             <History className="w-4 h-4" />
-            <span>Activity History & Presets</span>
+            <span>Activity Log Matrix</span>
           </button>
         </div>
 
@@ -159,8 +167,8 @@ export default function App() {
       <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Footer */}
-      <footer className="text-center text-xs text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block">
-        <p>QuestAscend Gamified Life & Study RPG • Mobile & Web Native Edition</p>
+      <footer className="text-center text-xs font-rajdhani text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block relative z-10">
+        <p>QuestAscend Cyber RPG System • Built with 3D WebGL Matrix & Web Audio Engine</p>
       </footer>
 
       {/* Modals */}

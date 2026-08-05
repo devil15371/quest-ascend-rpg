@@ -1,4 +1,4 @@
-// Web Audio API Synthesizer for RPG Sound Effects
+// Web Audio API Synthesizer for Retro & Sci-Fi RPG Sound Effects
 class AudioEngine {
   constructor() {
     this.ctx = null;
@@ -46,6 +46,11 @@ class AudioEngine {
         console.error(e);
       }
     }, delay * 1000);
+  }
+
+  playHoverSound() {
+    if (this.muted) return;
+    this.playTone(1200, 'sine', 0.03, 0.03, 0);
   }
 
   playExpGain() {
