@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Shield, Zap, BookOpen, Brain, Target, Sun, Edit2, Check, Award } from 'lucide-react';
+import { Shield, Zap, BookOpen, Brain, Target, Sun, Edit2, Check, Sparkles, Cpu, Award } from 'lucide-react';
 import { calculateLevel, getRankTier, isEarlyBirdTime } from '../utils/rpgEngine';
 import { audio } from '../utils/audioEngine';
+import { triggerHapticFeedback } from '../utils/mobileNative';
 
 export default function CharacterCard({ userData, setUserData }) {
   const [isEditingName, setIsEditingName] = useState(false);
@@ -27,6 +28,7 @@ export default function CharacterCard({ userData, setUserData }) {
     if (restPassCount <= 0) return;
 
     audio.playBuy();
+    triggerHapticFeedback('heavy');
     const restUntil = new Date(Date.now() + 86400000).toISOString();
 
     setUserData(prev => {
@@ -57,19 +59,22 @@ export default function CharacterCard({ userData, setUserData }) {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-5 border border-slate-800 shadow-xl relative overflow-hidden">
-      {/* Subtle Background Glow */}
-      <div className="absolute -top-12 -right-12 w-48 h-48 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="cyber-panel rounded-2xl p-5 sm:p-6 border border-cyan-500/30 relative overflow-hidden shadow-2xl bg-slate-950/80 cyber-hud-brackets">
+      {/* Background Energy Grid Blur */}
+      <div className="absolute -top-16 -right-16 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
         
-        {/* Left: Avatar & Hero Info */}
+        {/* Avatar & Hero Identity */}
         <div className="flex items-center gap-4">
           <div className="relative group">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-purple-900 via-slate-900 to-indigo-900 border-2 border-purple-500/40 flex items-center justify-center text-3xl sm:text-4xl shadow-xl group-hover:scale-105 transition-all">
+            {/* Pulsing Holographic Ring */}
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 opacity-70 blur-sm group-hover:opacity-100 transition animate-radar-pulse" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border-2 border-cyan-400/80 flex items-center justify-center text-3xl sm:text-4xl shadow-xl relative z-10">
               {userData.profile.avatar}
             </div>
-            <span className="absolute -bottom-1 -right-1 bg-slate-900 border border-slate-700 text-xs px-1.5 py-0.5 rounded-full shadow">
+            <span className="absolute -bottom-1 -right-1 z-20 bg-slate-900 border border-cyan-400/60 text-xs px-1.5 py-0.5 rounded-md shadow">
               {rank.badge}
             </span>
           </div>
@@ -82,24 +87,24 @@ export default function CharacterCard({ userData, setUserData }) {
                     type="text"
                     value={tempName}
                     onChange={(e) => setTempName(e.target.value)}
-                    className="bg-slate-900 border border-purple-500/60 rounded-lg px-2.5 py-1 text-sm font-bold text-white focus:outline-none"
+                    className="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1 text-sm font-orbitron font-bold text-white focus:outline-none"
                     autoFocus
                   />
                   <button 
                     onClick={saveName} 
-                    className="p-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white"
+                    className="p-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold"
                   >
                     <Check className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl sm:text-2xl font-black tracking-wide text-white">
+                  <h2 className="text-xl sm:text-2xl font-orbitron font-black tracking-wider text-white">
                     {userData.profile.name}
                   </h2>
                   <button 
                     onClick={() => setIsEditingName(true)}
-                    className="text-slate-400 hover:text-purple-300 transition"
+                    className="text-slate-400 hover:text-cyan-300 transition"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
@@ -107,58 +112,60 @@ export default function CharacterCard({ userData, setUserData }) {
               )}
             </div>
 
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-semibold text-purple-300 bg-purple-950/60 px-2.5 py-0.5 rounded-md border border-purple-800/40">
+            <div className="flex items-center flex-wrap gap-2 mt-1.5">
+              <span className="text-xs font-orbitron font-semibold text-cyan-300 bg-cyan-950/80 px-2.5 py-0.5 rounded border border-cyan-500/40">
                 {userData.profile.activeTitle || "Novice Scholar"}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${rank.color}`}>
+              <span className={`text-xs font-orbitron px-2.5 py-0.5 rounded font-bold ${rank.color}`}>
                 {rank.name}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right: EXP Bar & Rest Day Action */}
+        {/* Level Energy Arc Reactor Progress */}
         <div className="w-full md:w-80">
-          <div className="flex justify-between items-center text-xs font-semibold mb-1.5">
-            <span className="text-slate-300 flex items-center gap-1">
+          <div className="flex justify-between items-center text-xs font-orbitron font-semibold mb-1.5">
+            <span className="text-cyan-300 flex items-center gap-1">
               <Zap className="w-3.5 h-3.5 text-amber-400" />
-              Level {levelInfo.level} Progress
+              LVL {levelInfo.level} Energy Matrix
             </span>
             <span className="text-purple-300 font-mono">
               {levelInfo.currentLevelExp} / {levelInfo.nextLevelNeeded} EXP
             </span>
           </div>
 
-          <div className="w-full bg-slate-900/90 rounded-full h-3 p-0.5 border border-slate-700/60 overflow-hidden shadow-inner">
+          <div className="w-full bg-slate-900/90 rounded-full h-3.5 p-0.5 border border-slate-700/80 overflow-hidden shadow-inner">
             <div 
-              className="bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 h-full rounded-full transition-all duration-700 shadow-md shadow-purple-500/50"
+              className="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-700 shadow-md shadow-cyan-500/50 relative"
               style={{ width: `${levelInfo.progressPercent}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-white/20 animate-shimmer" />
+            </div>
           </div>
 
-          {/* Buff Indicators & Rest Pass trigger */}
+          {/* Buff Indicators & Rest Pass Action */}
           <div className="flex items-center justify-between gap-2 mt-3 text-xs">
             <div className="flex items-center gap-2">
               {isEarlyBirdTime() && (
-                <span className="px-2 py-0.5 rounded-md bg-amber-950/60 border border-amber-500/40 text-amber-300 font-medium flex items-center gap-1">
-                  <Sun className="w-3 h-3 text-amber-400" /> +25% Early Bird
+                <span className="px-2.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-rajdhani font-semibold flex items-center gap-1 animate-pulse">
+                  <Sun className="w-3.5 h-3.5 text-amber-400" /> +25% Early Bird
                 </span>
               )}
 
               {isRestDayActive ? (
-                <span className="px-2 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-medium flex items-center gap-1">
-                  <Shield className="w-3 h-3 text-emerald-400" /> Shield Active
+                <span className="px-2.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-rajdhani font-semibold flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" /> Shield Active
                 </span>
               ) : (
-                <span className="text-slate-400">No active penalty freeze</span>
+                <span className="text-slate-400 font-rajdhani">No penalty freeze</span>
               )}
             </div>
 
             {!isRestDayActive && restPassCount > 0 && (
               <button
                 onClick={useRestDayPass}
-                className="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 font-bold flex items-center gap-1 transition"
+                className="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300 font-orbitron font-bold flex items-center gap-1 transition active:scale-95 shadow-md shadow-emerald-500/20"
                 title={`Use 1 Rest Pass (${restPassCount} remaining)`}
               >
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
@@ -170,50 +177,50 @@ export default function CharacterCard({ userData, setUserData }) {
 
       </div>
 
-      {/* Stats Grid */}
+      {/* Cybernetic Stat Nodes Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-800/80">
         
         {/* INT */}
-        <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-950/80 border border-blue-500/30 flex items-center justify-center text-blue-400">
+        <div className="bg-slate-900/70 rounded-xl p-3 border border-blue-500/30 flex items-center gap-3 hover:border-blue-400/60 transition">
+          <div className="w-10 h-10 rounded-lg bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-md shadow-blue-500/20">
             <Brain className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400 font-medium uppercase">INT (Lectures)</div>
-            <div className="text-base font-black text-blue-300">{userData.profile.stats.int}</div>
+            <div className="text-[10px] font-orbitron text-slate-400 uppercase tracking-wider">INT (Matrix)</div>
+            <div className="text-base font-orbitron font-black text-blue-300">{userData.profile.stats.int}</div>
           </div>
         </div>
 
         {/* WIS */}
-        <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-purple-950/80 border border-purple-500/30 flex items-center justify-center text-purple-400">
+        <div className="bg-slate-900/70 rounded-xl p-3 border border-purple-500/30 flex items-center gap-3 hover:border-purple-400/60 transition">
+          <div className="w-10 h-10 rounded-lg bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-purple-400 shadow-md shadow-purple-500/20">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400 font-medium uppercase">WIS (Revision)</div>
-            <div className="text-base font-black text-purple-300">{userData.profile.stats.wis}</div>
+            <div className="text-[10px] font-orbitron text-slate-400 uppercase tracking-wider">WIS (Memory)</div>
+            <div className="text-base font-orbitron font-black text-purple-300">{userData.profile.stats.wis}</div>
           </div>
         </div>
 
         {/* DEX */}
-        <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+        <div className="bg-slate-900/70 rounded-xl p-3 border border-emerald-500/30 flex items-center gap-3 hover:border-emerald-400/60 transition">
+          <div className="w-10 h-10 rounded-lg bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md shadow-emerald-500/20">
             <Target className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400 font-medium uppercase">DEX (Questions)</div>
-            <div className="text-base font-black text-emerald-300">{userData.profile.stats.dex}</div>
+            <div className="text-[10px] font-orbitron text-slate-400 uppercase tracking-wider">DEX (Tactical)</div>
+            <div className="text-base font-orbitron font-black text-emerald-300">{userData.profile.stats.dex}</div>
           </div>
         </div>
 
         {/* VIT */}
-        <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-amber-950/80 border border-amber-500/30 flex items-center justify-center text-amber-400">
+        <div className="bg-slate-900/70 rounded-xl p-3 border border-amber-500/30 flex items-center gap-3 hover:border-amber-400/60 transition">
+          <div className="w-10 h-10 rounded-lg bg-amber-950/80 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-md shadow-amber-500/20">
             <Zap className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400 font-medium uppercase">VIT (Discipline)</div>
-            <div className="text-base font-black text-amber-300">{userData.profile.stats.vit}</div>
+            <div className="text-[10px] font-orbitron text-slate-400 uppercase tracking-wider">VIT (Overcharge)</div>
+            <div className="text-base font-orbitron font-black text-amber-300">{userData.profile.stats.vit}</div>
           </div>
         </div>
 

@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Award, Zap, Sparkles, X, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Award, Zap, Sparkles, X, ChevronRight, ShieldCheck, Cpu } from 'lucide-react';
 import { calculateLevel, getRankTier } from '../utils/rpgEngine';
 import { audio } from '../utils/audioEngine';
+import { triggerHapticFeedback } from '../utils/mobileNative';
 
 export default function LevelUpOverlay({ isOpen, onClose, userData }) {
   const levelInfo = calculateLevel(userData.profile.totalExp);
@@ -11,11 +12,13 @@ export default function LevelUpOverlay({ isOpen, onClose, userData }) {
   useEffect(() => {
     if (isOpen) {
       audio.playLevelUp();
+      triggerHapticFeedback('levelUp');
       try {
         confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 }
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.55 },
+          colors: ['#06b6d4', '#a855f7', '#ec4899', '#eab308']
         });
       } catch (e) {
         console.error(e);
@@ -26,11 +29,11 @@ export default function LevelUpOverlay({ isOpen, onClose, userData }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel max-w-md w-full rounded-3xl p-6 border-2 border-purple-500/60 shadow-2xl relative text-center overflow-hidden animate-level-pulse">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl animate-fade-in">
+      <div className="cyber-panel max-w-md w-full rounded-3xl p-6 border-2 border-cyan-400 shadow-2xl relative text-center overflow-hidden animate-cyber-pulse cyber-hud-brackets bg-slate-950/95">
         
         {/* Top Glow Accent */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-cyan-400 to-amber-400" />
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500" />
         
         <button
           onClick={onClose}
@@ -40,53 +43,53 @@ export default function LevelUpOverlay({ isOpen, onClose, userData }) {
         </button>
 
         {/* Badge Banner */}
-        <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-1 shadow-2xl shadow-purple-500/40 my-3">
+        <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-cyan-400 via-purple-600 to-pink-500 p-1 shadow-2xl shadow-cyan-500/40 my-3 animate-pulse">
           <div className="w-full h-full bg-slate-950 rounded-[20px] flex items-center justify-center text-4xl">
             {rank.badge}
           </div>
         </div>
 
-        <span className="text-xs font-black tracking-widest uppercase text-purple-400 bg-purple-950/80 px-3 py-1 rounded-full border border-purple-800/60">
-          LEVEL UP ACHIEVED!
+        <span className="text-xs font-orbitron font-black tracking-widest uppercase text-cyan-400 bg-cyan-950/90 px-3.5 py-1 rounded-full border border-cyan-500/60 shadow-lg shadow-cyan-500/30">
+          LEVEL UP OVERCHARGE!
         </span>
 
-        <h2 className="text-3xl font-black text-white mt-2 mb-1">
-          Level {levelInfo.level}
+        <h2 className="text-3xl font-orbitron font-black text-white mt-3 mb-1 tracking-wider">
+          LEVEL {levelInfo.level}
         </h2>
-        <p className="text-sm font-bold text-cyan-300">
-          Rank Status: <span className={rank.color}>{rank.name}</span>
+        <p className="text-sm font-orbitron font-bold text-cyan-300">
+          RANK STATUS: <span className={rank.color}>{rank.name}</span>
         </p>
 
         {/* Stat Gains Summary */}
-        <div className="my-5 bg-slate-950/70 rounded-2xl p-4 border border-slate-800 text-left space-y-2">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-            Hero Stat Attributes
+        <div className="my-5 bg-slate-950/80 rounded-2xl p-4 border border-slate-800 text-left space-y-2">
+          <div className="text-xs font-orbitron font-bold text-slate-400 uppercase tracking-wider mb-2">
+            Hero Stat Matrix
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="text-blue-400">🧠 INT (Lectures):</span>
-              <span className="text-white">{userData.profile.stats.int}</span>
+          <div className="grid grid-cols-2 gap-2 text-xs font-orbitron font-semibold">
+            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-blue-500/30">
+              <span className="text-blue-400">🧠 INT:</span>
+              <span className="text-white font-mono">{userData.profile.stats.int}</span>
             </div>
-            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="text-purple-400">📚 WIS (Revision):</span>
-              <span className="text-white">{userData.profile.stats.wis}</span>
+            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-purple-500/30">
+              <span className="text-purple-400">📚 WIS:</span>
+              <span className="text-white font-mono">{userData.profile.stats.wis}</span>
             </div>
-            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="text-emerald-400">🎯 DEX (Questions):</span>
-              <span className="text-white">{userData.profile.stats.dex}</span>
+            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-emerald-500/30">
+              <span className="text-emerald-400">🎯 DEX:</span>
+              <span className="text-white font-mono">{userData.profile.stats.dex}</span>
             </div>
-            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="text-amber-400">⚡ VIT (Discipline):</span>
-              <span className="text-white">{userData.profile.stats.vit}</span>
+            <div className="flex justify-between p-2 rounded-lg bg-slate-900 border border-amber-500/30">
+              <span className="text-amber-400">⚡ VIT:</span>
+              <span className="text-white font-mono">{userData.profile.stats.vit}</span>
             </div>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-slate-950 font-black text-sm tracking-wider uppercase shadow-xl shadow-purple-500/25 transition active:scale-95 flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 hover:from-cyan-300 hover:to-pink-400 text-slate-950 font-orbitron font-black text-xs tracking-widest uppercase shadow-xl shadow-cyan-500/30 transition active:scale-95 flex items-center justify-center gap-2"
         >
-          <span>Continue Ascension</span>
+          <span>CONTINUE ASCENSION</span>
           <ChevronRight className="w-4 h-4" />
         </button>
 

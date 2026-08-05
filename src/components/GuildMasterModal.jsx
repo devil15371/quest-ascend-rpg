@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, MessageSquare, Shield, Flame, RefreshCw } from 'lucide-react';
+import { Bot, Sparkles, MessageSquare, Shield, Flame, RefreshCw, Cpu } from 'lucide-react';
 import { generateGuildMasterMessage } from '../utils/rpgEngine';
 import { audio } from '../utils/audioEngine';
+import { triggerHapticFeedback } from '../utils/mobileNative';
 
 export default function GuildMasterModal({ userData, setUserData }) {
   const [personality, setPersonality] = useState(userData.guildMasterPersonality || 'cyber_mentor');
@@ -15,35 +16,35 @@ export default function GuildMasterModal({ userData, setUserData }) {
   });
 
   const personalities = [
-    { id: 'cyber_mentor', name: '🤖 Cyber AI Mentor', avatar: '🤖' },
-    { id: 'strict_sensei', name: '⚔️ Strict Dungeon Master', avatar: '🧙‍♂️' },
-    { id: 'anime_hero', name: '⚡ Anime Guild Host', avatar: '🦸' }
+    { id: 'cyber_mentor', name: '🤖 Cyber AI Core', avatar: '🤖' },
+    { id: 'strict_sensei', name: '⚔️ Dungeon Commander', avatar: '🧙‍♂️' },
+    { id: 'anime_hero', name: '⚡ Mech Guild Master', avatar: '🦸' }
   ];
 
   const currentAvatar = personalities.find(p => p.id === personality)?.avatar || '🤖';
 
   return (
-    <div className="glass-panel rounded-2xl p-5 border border-purple-500/30 relative overflow-hidden bg-gradient-to-r from-purple-950/40 via-slate-900/80 to-indigo-950/40 shadow-xl">
+    <div className="cyber-panel rounded-2xl p-5 border border-cyan-500/40 relative overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900/90 to-slate-950 shadow-2xl cyber-hud-brackets">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         
-        {/* Companion Avatar */}
+        {/* Holographic AI Avatar Ring */}
         <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-cyan-400 p-0.5 shadow-lg shadow-purple-500/30">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-400 via-purple-500 to-pink-500 p-0.5 shadow-lg shadow-cyan-500/40 animate-pulse">
             <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl">
               {currentAvatar}
             </div>
           </div>
-          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950 animate-ping" />
-          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950" />
+          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-cyan-400 rounded-full border-2 border-slate-950 animate-ping" />
+          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-cyan-400 rounded-full border-2 border-slate-950" />
         </div>
 
-        {/* Dynamic Speech & Personality Switcher */}
-        <div className="flex-1 space-y-1.5">
+        {/* Dynamic Holographic Dialogue */}
+        <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black tracking-wider text-purple-300 uppercase flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                AI Guild Master
+              <span className="text-xs font-orbitron font-black tracking-widest text-cyan-400 uppercase flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                AI GUILD MENTOR TERMINAL
               </span>
             </div>
 
@@ -51,10 +52,11 @@ export default function GuildMasterModal({ userData, setUserData }) {
               value={personality}
               onChange={(e) => {
                 audio.playClick();
+                triggerHapticFeedback('light');
                 setPersonality(e.target.value);
                 setUserData(prev => ({ ...prev, guildMasterPersonality: e.target.value }));
               }}
-              className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-300 focus:outline-none cursor-pointer"
+              className="bg-slate-900 border border-cyan-500/40 rounded-lg px-2 py-1 text-[11px] font-orbitron font-bold text-cyan-300 focus:outline-none cursor-pointer"
             >
               {personalities.map(p => (
                 <option key={p.id} value={p.id}>
@@ -64,7 +66,7 @@ export default function GuildMasterModal({ userData, setUserData }) {
             </select>
           </div>
 
-          <p className="text-sm font-medium text-slate-100 italic leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
+          <p className="text-sm font-rajdhani font-semibold text-slate-100 italic leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-cyan-500/30 text-cyan-100 shadow-inner">
             "{message.quote}"
           </p>
         </div>
