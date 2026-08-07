@@ -11,17 +11,18 @@ import AddSubjectModal from './components/AddSubjectModal';
 import AddQuestModal from './components/AddQuestModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import ThreeBackground from './components/ThreeBackground';
+import Brain3DVisualizer from './components/Brain3DVisualizer';
 
 import { loadUserData, saveUserData } from './utils/storage';
 import { calculateLevel } from './utils/rpgEngine';
 import { audio } from './utils/audioEngine';
 import { triggerHapticFeedback, scheduleMobileReminders } from './utils/mobileNative';
-import { BookOpen, Calendar, ShoppingBag, History } from 'lucide-react';
+import { BookOpen, Calendar, ShoppingBag, History, Brain } from 'lucide-react';
 
 export default function App() {
   const [userData, setUserData] = useState(() => loadUserData());
   const [isMuted, setIsMuted] = useState(false);
-  const [activeTab, setActiveTab] = useState('subjects'); // 'subjects', 'quests', 'shop', 'history'
+  const [activeTab, setActiveTab] = useState('subjects'); // 'subjects', 'brain', 'quests', 'shop', 'history'
 
   const [isLevelUpOpen, setIsLevelUpOpen] = useState(false);
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
@@ -90,6 +91,19 @@ export default function App() {
 
           <button
             onMouseEnter={() => audio.playHoverSound()}
+            onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('brain'); }}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
+              activeTab === 'brain'
+                ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 font-black shadow-lg shadow-cyan-500/25'
+                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
+            }`}
+          >
+            <Brain className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <span>🧠 3D Brain Matrix</span>
+          </button>
+
+          <button
+            onMouseEnter={() => audio.playHoverSound()}
             onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('quests'); }}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
               activeTab === 'quests'
@@ -138,6 +152,12 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'brain' && (
+            <Brain3DVisualizer 
+              userData={userData}
+            />
+          )}
+
           {activeTab === 'quests' && (
             <DailyQuestBoard 
               userData={userData}
@@ -168,7 +188,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center text-xs font-rajdhani text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block relative z-10">
-        <p>QuestAscend Cyber RPG System • Built with 3D WebGL Matrix & Web Audio Engine</p>
+        <p>QuestAscend Cyber RPG System • Powered by Ebbinghaus Forgetting Curve & Hebbian Synaptic Plasticity</p>
       </footer>
 
       {/* Modals */}
