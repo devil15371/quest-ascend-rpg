@@ -1,15 +1,95 @@
-// Neuroscience Neural Engine: Ebbinghaus Forgetting Curve, Hebbian LTP, and Obsidian Sub-Node Generator
+// Neuroscience Neural Engine: Ebbinghaus Forgetting Curve & Multi-Tier Subject/Topic Hierarchy
 
 /**
  * Anatomical Brain Lobe Regions for 3D Graph Node Placement
  */
 export const BRAIN_REGIONS = [
-  { name: "Prefrontal Cortex (Logic & Math)", basePos: { x: 0, y: 45, z: 110 }, color: "#06b6d4" },
-  { name: "Parietal Lobe (CS Core & Systems)", basePos: { x: 0, y: 110, z: 20 }, color: "#a855f7" },
-  { name: "Temporal Lobe Left (Memory & Revision)", basePos: { x: -110, y: -15, z: 20 }, color: "#ec4899" },
-  { name: "Temporal Lobe Right (Memory & Revision)", basePos: { x: 110, y: -15, z: 20 }, color: "#ec4899" },
-  { name: "Occipital Lobe (Pattern & PYQs)", basePos: { x: 0, y: -35, z: -110 }, color: "#eab308" },
-  { name: "Cerebellum (Speed & Execution)", basePos: { x: 0, y: -90, z: -70 }, color: "#10b981" }
+  { name: "Prefrontal Cortex (Logic & Math)", basePos: { x: 0, y: 45, z: 120 } },
+  { name: "Parietal Lobe (CS Core & Systems)", basePos: { x: 0, y: 110, z: 20 } },
+  { name: "Temporal Lobe Left (Memory & Revision)", basePos: { x: -115, y: -15, z: 20 } },
+  { name: "Temporal Lobe Right (Memory & Revision)", basePos: { x: 115, y: -15, z: 20 } },
+  { name: "Occipital Lobe (Pattern & PYQs)", basePos: { x: 0, y: -35, z: -115 } },
+  { name: "Cerebellum (Speed & Execution)", basePos: { x: 0, y: -90, z: -70 } }
+];
+
+/**
+ * Syllabus Preset Topic Breakdown per Subject Category
+ */
+export const SUBJECT_SYLLABUS_TREES = {
+  "Operating Systems": [
+    {
+      topicName: "Process Synchronization",
+      subTopics: ["Peterson's Algorithm", "Semaphores & Mutex", "Monitors", "Classic Readers-Writers"]
+    },
+    {
+      topicName: "CPU Scheduling",
+      subTopics: ["FCFS & SJF Scheduling", "Round Robin (RR)", "Multi-Level Queue", "Context Switch Overhead"]
+    },
+    {
+      topicName: "Memory Management",
+      subTopics: ["Paging & Segmentation", "Virtual Memory & Demand Paging", "LRU & FIFO Page Replacement", "TLB Miss Rate & Inverted Page Table"]
+    },
+    {
+      topicName: "Deadlocks & Storage",
+      subTopics: ["Banker's Avoidance Algorithm", "Resource Allocation Graph", "RAID Storage Systems", "Disk Scheduling (SCAN / C-LOOK)"]
+    }
+  ],
+  "Engineering Mathematics": [
+    {
+      topicName: "Linear Algebra",
+      subTopics: ["Eigenvalues & Eigenvectors", "System of Linear Equations", "Matrix Rank & Determinants", "LU Decomposition"]
+    },
+    {
+      topicName: "Calculus",
+      subTopics: ["Limits & Continuity", "Mean Value Theorems", "Definite & Double Integrals", "Vector Calculus & Gradient"]
+    },
+    {
+      topicName: "Probability & Stats",
+      subTopics: ["Bayes' Theorem", "Poisson & Normal Distribution", "Random Variables & Expectation", "Combinatorics"]
+    }
+  ],
+  "Algorithms & Data Structures": [
+    {
+      topicName: "Dynamic Programming",
+      subTopics: ["0/1 Knapsack Problem", "Longest Common Subsequence", "Matrix Chain Multiplication", "Bellman-Ford Shortest Path"]
+    },
+    {
+      topicName: "Graph Algorithms",
+      subTopics: ["Dijkstra's Algorithm", "Kruskal & Prim's MST", "BFS & DFS Traversal", "Topological Sorting"]
+    },
+    {
+      topicName: "Sorting & Searching",
+      subTopics: ["QuickSort & MergeSort Analysis", "HeapSort & Priority Queues", "Binary Search Trees", "AVL & Red-Black Trees"]
+    }
+  ],
+  "Database Management Systems": [
+    {
+      topicName: "Relational Algebra & SQL",
+      subTopics: ["Tuple Relational Calculus", "Nested Subqueries", "Joins (Inner, Outer, Natural)", "Group By & Having"]
+    },
+    {
+      topicName: "Normalization & Functional Dependencies",
+      subTopics: ["1NF, 2NF, 3NF & BCNF", "Lossless Join Decomposition", "Dependency Preservation", "Canonical Cover"]
+    },
+    {
+      topicName: "Transactions & Concurrency",
+      subTopics: ["ACID Properties", "Two-Phase Locking (2PL)", "Conflict Serializability", "Strict 2PL & Deadlocks"]
+    }
+  ]
+};
+
+/**
+ * Default Topic Fallback if subject name is custom
+ */
+const DEFAULT_TOPIC_TREE = [
+  {
+    topicName: "Core Syllabus Modules",
+    subTopics: ["Theory & Concepts", "Formula Derivations", "Standard Numerical Problems"]
+  },
+  {
+    topicName: "Practice & Applications",
+    subTopics: ["Medium Numerical Drills", "Advanced Problem Solving", "Mock Test Questions"]
+  }
 ];
 
 /**
@@ -50,13 +130,8 @@ export function calculateSubjectNeuroState(subject, activityLogs = []) {
 
   const halfLifeDays = Math.round(stabilityDays * Math.log(2) * 10) / 10;
 
-  // Generate Obsidian Sub-Topic Graph Nodes
-  const subNodes = [
-    { name: `${subject.name} (Core Concepts)`, size: 14 + (lectures * 0.4), type: 'HUB' },
-    { name: `Revisions (${revisions} rounds)`, size: 8 + (revisions * 1.5), type: 'REVISION' },
-    { name: `Practice Questions (${questions} solved)`, size: 8 + (questions * 0.05), type: 'QUESTION' },
-    { name: `Notes & Practice Bank`, size: 7, type: 'CONCEPT' }
-  ];
+  // Build Multi-Tier Syllabus Tree Structure
+  const syllabusTree = SUBJECT_SYLLABUS_TREES[subject.name] || DEFAULT_TOPIC_TREE;
 
   return {
     subjectId: subject.id,
@@ -68,7 +143,7 @@ export function calculateSubjectNeuroState(subject, activityLogs = []) {
     status,
     statusColor,
     synapsesCount: (lectures * 12) + (questions * 4) + (revisions * 25),
-    subNodes
+    syllabusTree
   };
 }
 
