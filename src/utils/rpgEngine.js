@@ -1,139 +1,129 @@
-// RPG Game Logic, EXP Formulas, Ranks, and Guild Master AI dialogue generator
+// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Scaling, and Guild Master AI Quotes
 
-export const RANK_TIERS = [
-  { minLevel: 1, maxLevel: 4, name: "E-Rank Novice", badge: "🥉", color: "text-amber-600 border-amber-600/30 bg-amber-950/20" },
-  { minLevel: 5, maxLevel: 9, name: "D-Rank Apprentice", badge: "🥈", color: "text-slate-300 border-slate-400/30 bg-slate-900/30" },
-  { minLevel: 10, maxLevel: 14, name: "C-Rank Scholar", badge: "🥇", color: "text-yellow-400 border-yellow-500/30 bg-yellow-950/20" },
-  { minLevel: 15, maxLevel: 24, name: "B-Rank Strategist", badge: "💎", color: "text-cyan-400 border-cyan-500/30 bg-cyan-950/20" },
-  { minLevel: 25, maxLevel: 39, name: "A-Rank Master", badge: "🏆", color: "text-purple-400 border-purple-500/30 bg-purple-950/20" },
-  { minLevel: 40, maxLevel: 999, name: "S-Rank Sovereign", badge: "👑", color: "text-amber-300 border-amber-400/50 bg-gradient-to-r from-amber-500/20 to-purple-600/20 shadow-lg shadow-amber-500/10" }
+/**
+ * Cultivation Realm Definitions
+ */
+export const CULTIVATION_REALMS = [
+  { minLevel: 1,  maxLevel: 10,  name: "Mortal Realm",           badge: "🥉", color: "text-slate-400", border: "border-slate-700" },
+  { minLevel: 11, maxLevel: 25,  name: "Qi Condensation",        badge: "⚡", color: "text-cyan-400",  border: "border-cyan-500" },
+  { minLevel: 26, maxLevel: 45,  name: "Foundation Establishment",badge: "🛡️", color: "text-blue-400",  border: "border-blue-500" },
+  { minLevel: 46, maxLevel: 70,  name: "Core Formation",         badge: "🔮", color: "text-purple-400",border: "border-purple-500" },
+  { minLevel: 71, maxLevel: 100, name: "Nascent Soul",           badge: "🌌", color: "text-pink-400",  border: "border-pink-500" },
+  { minLevel: 101,maxLevel: 999, name: "Sovereign Immortal",     badge: "👑", color: "text-amber-400", border: "border-amber-500" }
+];
+
+/**
+ * Default Reward Shop Items
+ */
+export const DEFAULT_SHOP_ITEMS = [
+  {
+    id: "item_rest_pass",
+    title: "Rest Day Pass (Shield)",
+    description: "Waives EXP penalty for 1 day if you take a rest from GATE study.",
+    cost: 150,
+    icon: "🛡️",
+    type: "PASS"
+  },
+  {
+    id: "item_movie_night",
+    title: "Anime / Movie Guild Pass",
+    description: "Enjoy 2 hours of anime guilt-free after hitting study target.",
+    cost: 100,
+    icon: "🎬",
+    type: "REWARD"
+  },
+  {
+    id: "item_cheat_meal",
+    title: "S-Rank Cheat Feast",
+    description: "Treat yourself to a favorite meal or snack.",
+    cost: 120,
+    icon: "🍕",
+    type: "REWARD"
+  }
 ];
 
 export const EXP_TABLE = {
-  LECTURE: { exp: 50, gold: 20, stat: 'int', val: 15 },
-  REVISION: { exp: 35, gold: 15, stat: 'wis', val: 12 },
-  QUESTION: { exp: 10, gold: 5, stat: 'dex', val: 3 },
-  DAILY_QUEST: { exp: 80, gold: 35, stat: 'vit', val: 10 },
-  EARLY_BIRD_BONUS: 0.25 // +25% bonus EXP
+  LECTURE: 40,
+  QUESTION: 3,
+  REVISION: 30,
+  DAILY_QUEST: 80,
+  EARLY_BIRD_BONUS: 1.25
 };
 
-export const DEFAULT_SHOP_ITEMS = [
-  {
-    id: "shop_rest_day",
-    name: "🛡️ Rest Day Pass",
-    category: "Consumable",
-    price: 200,
-    icon: "ShieldAlert",
-    description: "Freezes daily quest penalties & protects streak for 24 hours. Take a guilt-free rest!",
-    type: "REST_PASS",
-    stock: -1
-  },
-  {
-    id: "shop_gaming_break",
-    name: "🎮 1-Hour Gaming / Chill Ticket",
-    category: "Real-Life Reward",
-    price: 150,
-    icon: "Gamepad2",
-    description: "Earn 60 uninterrupted minutes of your favorite game or movie.",
-    type: "REAL_REWARD",
-    stock: -1
-  },
-  {
-    id: "shop_snack_cheat",
-    name: "🍕 Cheat Snack Pass",
-    category: "Real-Life Reward",
-    price: 250,
-    icon: "Pizza",
-    description: "Treat yourself to a delicious coffee or favorite snack guilt-free.",
-    type: "REAL_REWARD",
-    stock: -1
-  },
-  {
-    id: "shop_title_shadow",
-    name: "👑 Title: Shadow Monarch",
-    category: "Cosmetic Title",
-    price: 500,
-    icon: "Sparkles",
-    description: "Unlock the exclusive glowing title 'Shadow Monarch' on your profile card.",
-    type: "COSMETIC_TITLE",
-    titleName: "Shadow Monarch",
-    stock: 1
-  }
-];
+export function isEarlyBirdTime() {
+  const hour = new Date().getHours();
+  return hour >= 5 && hour < 9;
+}
 
-export function calculateLevel(totalExp) {
-  // Level formula: Each level requires level * 120 EXP
+/**
+ * Exponential EXP required for Level L:
+ * EXP(L) = floor(100 * L^1.65)
+ */
+export function getExpForLevel(level) {
+  if (level <= 1) return 0;
+  return Math.floor(100 * Math.pow(level - 1, 1.65));
+}
+
+/**
+ * Calculate Level, Current Realm, and EXP Progress %
+ */
+export function calculateLevel(totalExp = 0) {
   let level = 1;
-  let expRemaining = totalExp;
-  
-  while (expRemaining >= level * 120) {
-    expRemaining -= level * 120;
+  while (totalExp >= getExpForLevel(level + 1)) {
     level++;
   }
-  
-  const nextLevelNeeded = level * 120;
-  const progressPercent = Math.min(100, Math.round((expRemaining / nextLevelNeeded) * 100));
+
+  const currentLevelExp = getExpForLevel(level);
+  const nextLevelExp = getExpForLevel(level + 1);
+  const expInLevel = totalExp - currentLevelExp;
+  const expNeeded = nextLevelExp - currentLevelExp;
+  const progressPercent = Math.min(100, Math.max(0, Math.floor((expInLevel / expNeeded) * 100)));
+
+  const realm = getCultivationRealm(level);
 
   return {
     level,
-    currentLevelExp: expRemaining,
-    nextLevelNeeded,
-    progressPercent
+    currentLevelExp,
+    nextLevelExp,
+    expInLevel,
+    expNeeded,
+    progressPercent,
+    realm
   };
 }
 
+/**
+ * Get Cultivation Realm for a given Level
+ */
+export function getCultivationRealm(level) {
+  return CULTIVATION_REALMS.find(r => level >= r.minLevel && level <= r.maxLevel) || CULTIVATION_REALMS[CULTIVATION_REALMS.length - 1];
+}
+
+/**
+ * Legacy Rank Tier Compatibility Helper
+ */
 export function getRankTier(level) {
-  return RANK_TIERS.find(r => level >= r.minLevel && level <= r.maxLevel) || RANK_TIERS[0];
-}
-
-export function isEarlyBirdTime() {
-  const now = new Date();
-  const hours = now.getHours();
-  // Before 8:00 AM qualifies as Early Bird!
-  return hours < 8;
-}
-
-export function generateGuildMasterMessage({ name, level, streak, restDayActive, lastCompletedSubject, totalExp }) {
-  const rank = getRankTier(level);
-  
-  if (restDayActive) {
-    return {
-      emotion: "relaxed",
-      quote: `Rest is vital for true warriors, ${name}. Your rest day shield is active—recharge your mind for tomorrow's grind!`
-    };
-  }
-
-  if (streak >= 7) {
-    return {
-      emotion: "hyped",
-      quote: `🔥 UNSTOPPABLE! A ${streak}-day streak! You operate like an S-Rank hunter. Keep this momentum roaring!`
-    };
-  }
-
-  if (isEarlyBirdTime()) {
-    return {
-      emotion: "inspired",
-      quote: `🌅 Sunrise Warrior! Logging in early awards you a +25% EXP Early Bird Boost. Conquer the morning, conquer the day!`
-    };
-  }
-
-  if (level >= 10) {
-    return {
-      emotion: "proud",
-      quote: `You've achieved ${rank.name} status (${rank.badge})! Every lecture done brings you closer to GATE top rank.`
-    };
-  }
-
-  const quotes = [
-    `Welcome back, ${name}! Ready to turn lectures into EXP today?`,
-    `Consistency is the secret weapon of champions. Let's finish today's targets!`,
-    `Every practice question solved adds to your DEX stat. Keep pushing!`,
-    `Need a rest? Earn Gold Coins from completing daily quests and buy a Rest Day Pass!`
-  ];
-
-  const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+  const realm = getCultivationRealm(level);
   return {
-    emotion: "focused",
-    quote: randomQuote
+    name: realm.name,
+    badge: realm.badge,
+    color: realm.color,
+    border: realm.border
   };
+}
+
+/**
+ * Dynamic Guild Master Quotes
+ */
+export const GUILD_MASTER_QUOTES = [
+  "Welcome back, Hunter. A new day of GATE preparation awaits.",
+  "Consistency is the forge of legends. Complete your morning quests!",
+  "Synaptic connections weaken without daily retrieval. Review your topics!",
+  "A true Sovereign does not fear difficult PYQs. Ascend your realm!",
+  "Rest days are earned through discipline. Keep pushing forward."
+];
+
+export function generateGuildMasterMessage(userData) {
+  const levelInfo = calculateLevel(userData.profile.totalExp);
+  return `Greetings, ${userData.profile.name}! You are currently at Level ${levelInfo.level} (${levelInfo.realm.name}). Keep striving for Realm Breakthrough!`;
 }

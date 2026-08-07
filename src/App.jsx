@@ -12,12 +12,13 @@ import AddQuestModal from './components/AddQuestModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import ThreeBackground from './components/ThreeBackground';
 import Brain3DVisualizer from './components/Brain3DVisualizer';
+import NightReportModal from './components/NightReportModal';
 
 import { loadUserData, saveUserData } from './utils/storage';
 import { calculateLevel } from './utils/rpgEngine';
 import { audio } from './utils/audioEngine';
 import { triggerHapticFeedback, scheduleMobileReminders } from './utils/mobileNative';
-import { BookOpen, Calendar, ShoppingBag, History, Brain } from 'lucide-react';
+import { BookOpen, Calendar, ShoppingBag, History, Brain, Moon } from 'lucide-react';
 
 export default function App() {
   const [userData, setUserData] = useState(() => loadUserData());
@@ -27,6 +28,7 @@ export default function App() {
   const [isLevelUpOpen, setIsLevelUpOpen] = useState(false);
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isAddQuestOpen, setIsAddQuestOpen] = useState(false);
+  const [isNightReportOpen, setIsNightReportOpen] = useState(false);
 
   const [prevLevel, setPrevLevel] = useState(() => calculateLevel(userData.profile.totalExp).level);
 
@@ -62,6 +64,10 @@ export default function App() {
         onOpenLevelUp={() => {
           triggerHapticFeedback('medium');
           setIsLevelUpOpen(true);
+        }}
+        onOpenNightReport={() => {
+          triggerHapticFeedback('medium');
+          setIsNightReportOpen(true);
         }}
       />
 
@@ -188,7 +194,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center text-xs font-rajdhani text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block relative z-10">
-        <p>QuestAscend Cyber RPG System • Powered by Ebbinghaus Forgetting Curve & Hebbian Synaptic Plasticity</p>
+        <p>QuestAscend RPG System • Cultivation Realm Ascension & GATE AI Verification</p>
       </footer>
 
       {/* Modals */}
@@ -208,6 +214,13 @@ export default function App() {
       <AddQuestModal 
         isOpen={isAddQuestOpen}
         onClose={() => setIsAddQuestOpen(false)}
+        setUserData={setUserData}
+      />
+
+      <NightReportModal
+        isOpen={isNightReportOpen}
+        onClose={() => setIsNightReportOpen(false)}
+        userData={userData}
         setUserData={setUserData}
       />
 
