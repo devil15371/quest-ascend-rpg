@@ -1,4 +1,4 @@
-// LocalStorage Manager with Initial State and Daily Audit checks
+// LocalStorage Manager with Deep Fallback State Merge and Daily Audit checks
 
 import { PRESET_CAMPAIGNS } from './presets';
 import { DEFAULT_SHOP_ITEMS } from './rpgEngine';
@@ -15,13 +15,13 @@ export const INITIAL_USER_STATE = {
     gold: 120,
     streak: 3,
     lastActiveDate: new Date().toISOString().split('T')[0],
-    restDayActiveUntil: null, // ISO string date
+    restDayActiveUntil: null,
     earlyBirdUnlockedToday: false,
     stats: {
-      int: 45, // Intelligence (Lectures)
-      wis: 30, // Wisdom (Revisions)
-      dex: 25, // Dexterity (Questions)
-      vit: 20  // Vitality (Early waking & discipline)
+      int: 45,
+      wis: 30,
+      dex: 25,
+      vit: 20
     }
   },
   activeCampaignId: "gate_cs",
@@ -72,8 +72,33 @@ export const INITIAL_USER_STATE = {
       timestamp: Date.now() - 3600000
     }
   ],
-  guildMasterPersonality: "cyber_mentor" // 'cyber_mentor', 'strict_sensei', 'anime_hero'
+  guildMasterPersonality: "cyber_mentor"
 };
+
+/**
+ * Deep merge user state with initial defaults to prevent undefined property crashes
+ */
+function deepMergeState(saved, defaults) {
+  if (!saved || typeof saved !== 'object') return defaults;
+
+  return {
+    ...defaults,
+    ...saved,
+    profile: {
+      ...defaults.profile,
+      ...(saved.profile || {}),
+      stats: {
+        ...defaults.profile.stats,
+        ...((saved.profile && saved.profile.stats) || {})
+      }
+    },
+    campaigns: Array.isArray(saved.campaigns) && saved.campaigns.length > 0 ? saved.campaigns : defaults.campaigns,
+    dailyQuests: Array.isArray(saved.dailyQuests) ? saved.dailyQuests : defaults.dailyQuests,
+    activityLogs: Array.isArray(saved.activityLogs) ? saved.activityLogs : defaults.activityLogs,
+    inventory: Array.isArray(saved.inventory) ? saved.inventory : defaults.inventory,
+    shopItems: Array.isArray(saved.shopItems) ? saved.shopItems : defaults.shopItems
+  };
+}
 
 export function loadUserData() {
   try {
@@ -83,11 +108,12 @@ export function loadUserData() {
       return INITIAL_USER_STATE;
     }
     const parsed = JSON.parse(dataStr);
+    const mergedState = deepMergeState(parsed, INITIAL_USER_STATE);
 
-    // Perform daily audit on load
-    return performDailyAudit(parsed);
+    return performDailyAudit(mergedState);
   } catch (err) {
     console.error("Failed to load user data from LocalStorage:", err);
+    saveUserData(INITIAL_USER_STATE);
     return INITIAL_USER_STATE;
   }
 }
@@ -101,66 +127,65 @@ export function saveUserData(data) {
 }
 
 function performDailyAudit(state) {
-  const today = new Date().toISOString().split('T')[0];
-  const lastActive = state.profile.lastActiveDate;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const lastActive = state.profile?.lastActiveDate || today;
 
-  // Check if date changed
-  if (lastActive !== today) {
-    const isRestDay = state.profile.restDayActiveUntil && new Date(state.profile.restDayActiveUntil) >= new Date();
+    if (lastActive !== today) {
+      const isRestDay = state.profile.restDayActiveUntil && new Date(state.profile.restDayActiveUntil) >= new Date();
 
-    let updatedExp = state.profile.totalExp;
-    let updatedStreak = state.profile.streak;
-    const penaltyLogs = [];
+      let updatedExp = state.profile.totalExp || 0;
+      let updatedStreak = state.profile.streak || 1;
+      const penaltyLogs = [];
 
-    if (!isRestDay) {
-      // Check uncompleted daily quests from previous day
-      const uncompletedQuests = state.dailyQuests.filter(q => !q.completed && q.dateSet !== today);
-      if (uncompletedQuests.length > 0) {
-        const penaltyExp = uncompletedQuests.length * 25; // 25 EXP penalty per missed quest
-        updatedExp = Math.max(0, updatedExp - penaltyExp);
-        
-        penaltyLogs.push({
-          id: 'log_penalty_' + Date.now(),
-          date: today,
-          type: 'PENALTY',
-          description: `Daily Audit: -${penaltyExp} EXP penalty for ${uncompletedQuests.length} uncompleted morning task(s)`,
-          expGained: -penaltyExp,
-          timestamp: Date.now()
-        });
+      if (!isRestDay && Array.isArray(state.dailyQuests)) {
+        const uncompletedQuests = state.dailyQuests.filter(q => !q.completed && q.dateSet !== today);
+        if (uncompletedQuests.length > 0) {
+          const penaltyExp = uncompletedQuests.length * 25;
+          updatedExp = Math.max(0, updatedExp - penaltyExp);
+
+          penaltyLogs.push({
+            id: 'log_penalty_' + Date.now(),
+            date: today,
+            type: 'PENALTY',
+            description: `Daily Audit: -${penaltyExp} EXP penalty for ${uncompletedQuests.length} uncompleted morning task(s)`,
+            expGained: -penaltyExp,
+            timestamp: Date.now()
+          });
+        }
+
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        if (lastActive !== yesterday) {
+          updatedStreak = 1;
+        }
       }
 
-      // Streak check
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      if (lastActive !== yesterday) {
-        // Missed a day
-        updatedStreak = 1;
-      }
+      const updatedState = {
+        ...state,
+        profile: {
+          ...state.profile,
+          totalExp: updatedExp,
+          streak: updatedStreak,
+          lastActiveDate: today,
+          earlyBirdUnlockedToday: false
+        },
+        dailyQuests: (state.dailyQuests || []).map(q => ({
+          ...q,
+          completed: false,
+          dateSet: today
+        })),
+        activityLogs: [...penaltyLogs, ...(state.activityLogs || [])]
+      };
+
+      saveUserData(updatedState);
+      return updatedState;
     }
 
-    // Reset daily state for new day
-    const updatedState = {
-      ...state,
-      profile: {
-        ...state.profile,
-        totalExp: updatedExp,
-        streak: updatedStreak,
-        lastActiveDate: today,
-        earlyBirdUnlockedToday: false
-      },
-      // Keep completed history logs, but generate fresh daily quests template for new day
-      dailyQuests: state.dailyQuests.map(q => ({
-        ...q,
-        completed: false,
-        dateSet: today
-      })),
-      activityLogs: [...penaltyLogs, ...state.activityLogs]
-    };
-
-    saveUserData(updatedState);
-    return updatedState;
+    return state;
+  } catch (e) {
+    console.error("Error in daily audit:", e);
+    return state;
   }
-
-  return state;
 }
 
 export function exportDataAsJSON(data) {
