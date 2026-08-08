@@ -60,7 +60,7 @@ export function isEarlyBirdTime() {
  * EXP(L) = floor(100 * L^1.65)
  */
 export function getExpForLevel(level) {
-  if (level <= 1) return 0;
+  if (!level || level <= 1) return 0;
   return Math.floor(100 * Math.pow(level - 1, 1.65));
 }
 
@@ -68,15 +68,17 @@ export function getExpForLevel(level) {
  * Calculate Level, Current Realm, and EXP Progress %
  */
 export function calculateLevel(totalExp = 0) {
+  const validExp = Math.max(0, Number(totalExp) || 0);
   let level = 1;
-  while (totalExp >= getExpForLevel(level + 1)) {
+
+  while (validExp >= getExpForLevel(level + 1)) {
     level++;
   }
 
   const currentLevelExp = getExpForLevel(level);
   const nextLevelExp = getExpForLevel(level + 1);
-  const expInLevel = totalExp - currentLevelExp;
-  const expNeeded = nextLevelExp - currentLevelExp;
+  const expInLevel = validExp - currentLevelExp;
+  const expNeeded = Math.max(1, nextLevelExp - currentLevelExp);
   const progressPercent = Math.min(100, Math.max(0, Math.floor((expInLevel / expNeeded) * 100)));
 
   const realm = getCultivationRealm(level);
@@ -95,14 +97,15 @@ export function calculateLevel(totalExp = 0) {
 /**
  * Get Cultivation Realm for a given Level
  */
-export function getCultivationRealm(level) {
-  return CULTIVATION_REALMS.find(r => level >= r.minLevel && level <= r.maxLevel) || CULTIVATION_REALMS[CULTIVATION_REALMS.length - 1];
+export function getCultivationRealm(level = 1) {
+  const validLevel = Math.max(1, Number(level) || 1);
+  return CULTIVATION_REALMS.find(r => validLevel >= r.minLevel && validLevel <= r.maxLevel) || CULTIVATION_REALMS[CULTIVATION_REALMS.length - 1];
 }
 
 /**
  * Legacy Rank Tier Compatibility Helper
  */
-export function getRankTier(level) {
+export function getRankTier(level = 1) {
   const realm = getCultivationRealm(level);
   return {
     name: realm.name,
@@ -124,6 +127,13 @@ export const GUILD_MASTER_QUOTES = [
 ];
 
 export function generateGuildMasterMessage(userData) {
-  const levelInfo = calculateLevel(userData.profile.totalExp);
-  return `Greetings, ${userData.profile.name}! You are currently at Level ${levelInfo.level} (${levelInfo.realm.name}). Keep striving for Realm Breakthrough!`;
+  const totalExp = (userData && userData.totalExp) || (userData && userData.profile && userData.profile.totalExp) || 0;
+  const name = (userData && userData.name) || (userData && userData.profile && userData.profile.name) || 'Hunter';
+  const levelInfo = calculateLevel(totalExp);
+
+  return {
+    quote: `Greetings, ${name}! You are currently at Level ${levelInfo.level} (${levelInfo.realm.name}). Keep striving for Realm Breakthrough!`,
+    level: levelInfo.level,
+    realm: levelInfo.realm.name
+  };
 }

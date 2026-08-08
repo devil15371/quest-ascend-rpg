@@ -5,15 +5,17 @@ import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
 export default function GuildMasterModal({ userData, setUserData }) {
-  const [personality, setPersonality] = useState(userData.guildMasterPersonality || 'cyber_mentor');
+  const [personality, setPersonality] = useState(userData?.guildMasterPersonality || 'cyber_mentor');
 
   const message = generateGuildMasterMessage({
-    name: userData.profile.name,
-    level: userData.profile.totalExp ? Math.floor(Math.sqrt(userData.profile.totalExp / 100)) + 1 : 1,
-    streak: userData.profile.streak,
-    restDayActive: userData.profile.restDayActiveUntil && new Date(userData.profile.restDayActiveUntil) >= new Date(),
-    totalExp: userData.profile.totalExp
+    name: userData?.profile?.name || 'Hunter Candidate',
+    level: userData?.profile?.totalExp ? Math.floor(Math.sqrt(userData.profile.totalExp / 100)) + 1 : 1,
+    streak: userData?.profile?.streak || 1,
+    restDayActive: userData?.profile?.restDayActiveUntil && new Date(userData.profile.restDayActiveUntil) >= new Date(),
+    totalExp: userData?.profile?.totalExp || 0
   });
+
+  const messageQuote = typeof message === 'string' ? message : message?.quote || "Welcome back, Hunter. A new day of GATE preparation awaits.";
 
   const personalities = [
     { id: 'cyber_mentor', name: '🤖 Cyber AI Core', avatar: '🤖' },
@@ -24,7 +26,7 @@ export default function GuildMasterModal({ userData, setUserData }) {
   const currentAvatar = personalities.find(p => p.id === personality)?.avatar || '🤖';
 
   return (
-    <div className="cyber-panel rounded-2xl p-5 border border-cyan-500/40 relative overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900/90 to-slate-950 shadow-2xl cyber-hud-brackets">
+    <div className="cyber-panel rounded-2xl p-5 border border-cyan-500/40 relative overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900/90 to-slate-950 shadow-2xl cyber-hud-brackets font-orbitron">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         
         {/* Holographic AI Avatar Ring */}
@@ -42,7 +44,7 @@ export default function GuildMasterModal({ userData, setUserData }) {
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-orbitron font-black tracking-widest text-cyan-400 uppercase flex items-center gap-1.5">
+              <span className="text-xs font-black tracking-widest text-cyan-400 uppercase flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
                 AI GUILD MENTOR TERMINAL
               </span>
@@ -56,7 +58,7 @@ export default function GuildMasterModal({ userData, setUserData }) {
                 setPersonality(e.target.value);
                 setUserData(prev => ({ ...prev, guildMasterPersonality: e.target.value }));
               }}
-              className="bg-slate-900 border border-cyan-500/40 rounded-lg px-2 py-1 text-[11px] font-orbitron font-bold text-cyan-300 focus:outline-none cursor-pointer"
+              className="bg-slate-900 border border-cyan-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-cyan-300 focus:outline-none cursor-pointer"
             >
               {personalities.map(p => (
                 <option key={p.id} value={p.id}>
@@ -67,7 +69,7 @@ export default function GuildMasterModal({ userData, setUserData }) {
           </div>
 
           <p className="text-sm font-rajdhani font-semibold text-slate-100 italic leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-cyan-500/30 text-cyan-100 shadow-inner">
-            "{message.quote}"
+            "{messageQuote}"
           </p>
         </div>
 
