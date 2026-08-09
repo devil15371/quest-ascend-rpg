@@ -13,6 +13,7 @@ import MobileBottomNav from './components/MobileBottomNav';
 import ThreeBackground from './components/ThreeBackground';
 import Brain3DVisualizer from './components/Brain3DVisualizer';
 import NightReportModal from './components/NightReportModal';
+import ApiKeyModal from './components/ApiKeyModal';
 
 import { loadUserData, saveUserData } from './utils/storage';
 import { calculateLevel } from './utils/rpgEngine';
@@ -29,8 +30,9 @@ export default function App() {
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isAddQuestOpen, setIsAddQuestOpen] = useState(false);
   const [isNightReportOpen, setIsNightReportOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
-  const [prevLevel, setPrevLevel] = useState(() => calculateLevel(userData.profile.totalExp).level);
+  const [prevLevel, setPrevLevel] = useState(() => calculateLevel(userData?.profile?.totalExp || 0).level);
 
   // Initialize native mobile reminders
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function App() {
   useEffect(() => {
     saveUserData(userData);
 
-    const currentLevel = calculateLevel(userData.profile.totalExp).level;
+    const currentLevel = calculateLevel(userData?.profile?.totalExp || 0).level;
     if (currentLevel > prevLevel) {
       setIsLevelUpOpen(true);
       triggerHapticFeedback('levelUp');
@@ -69,13 +71,21 @@ export default function App() {
           triggerHapticFeedback('medium');
           setIsNightReportOpen(true);
         }}
+        onOpenApiKeyModal={() => {
+          triggerHapticFeedback('light');
+          setIsApiKeyModalOpen(true);
+        }}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6 relative z-10">
         
-        {/* Guild Master AI Companion Speech Banner */}
-        <GuildMasterModal userData={userData} setUserData={setUserData} />
+        {/* Antigravity Quantum Co-Pilot Speech Banner */}
+        <GuildMasterModal 
+          userData={userData} 
+          setUserData={setUserData} 
+          onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+        />
 
         {/* Character RPG Hero Card */}
         <CharacterCard userData={userData} setUserData={setUserData} />
@@ -194,7 +204,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center text-xs font-rajdhani text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block relative z-10">
-        <p>QuestAscend RPG System • Cultivation Realm Ascension & GATE AI Verification</p>
+        <p>QuestAscend RPG System • Powered by Antigravity Quantum Co-Pilot & Gemini 2.5 Flash AI Engine</p>
       </footer>
 
       {/* Modals */}
@@ -222,6 +232,11 @@ export default function App() {
         onClose={() => setIsNightReportOpen(false)}
         userData={userData}
         setUserData={setUserData}
+      />
+
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
       />
 
     </div>

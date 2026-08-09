@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Moon, CheckCircle, HelpCircle, Award, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import { X, Moon, CheckCircle, HelpCircle, Award, Sparkles, BookOpen, ChevronRight, Cpu } from 'lucide-react';
 import { getGATEVerificationQuiz } from '../utils/gateQuizBank';
+import { generateGateQuizWithGemini, getStoredGeminiApiKey } from '../utils/geminiAiService';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
@@ -10,8 +11,10 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
   const [lecturesDone, setLecturesDone] = useState(2);
   const [topicName, setTopicName] = useState('');
   const [questionsDone, setQuestionsDone] = useState(25);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
+  const [isGeminiGenerated, setIsGeminiGenerated] = useState(false);
 
-  const activeCampaign = userData.campaigns.find(c => c.id === userData.activeCampaignId) || userData.campaigns[0];
+  const activeCampaign = userData?.campaigns?.find(c => c.id === userData.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
   const subjects = activeCampaign?.subjects || [];
 
   const [quizQuestions, setQuizQuestions] = useState([]);
@@ -22,15 +25,34 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
 
   const currentSubject = subjects.find(s => s.id === selectedSubjectId) || subjects[0];
 
-  const handleProceedToQuiz = (e) => {
+  const handleProceedToQuiz = async (e) => {
     e.preventDefault();
     if (!currentSubject) return;
 
     audio.playClick();
     triggerHapticFeedback('medium');
+    setIsLoadingQuiz(true);
 
-    const questions = getGATEVerificationQuiz(currentSubject.name);
-    setQuizQuestions(questions);
+    const apiKey = getStoredGeminiApiKey();
+
+    if (apiKey) {
+      try {
+        const liveQuestions = await generateGateQuizWithGemini(currentSubject.name, topicName, apiKey);
+        setQuizQuestions(liveQuestions);
+        setIsGeminiGenerated(true);
+      } catch (err) {
+        console.warn("Gemini quiz generation failed, using local GATE quiz bank:", err);
+        const fallback = getGATEVerificationQuiz(currentSubject.name);
+        setQuizQuestions(fallback);
+        setIsGeminiGenerated(false);
+      }
+    } else {
+      const fallback = getGATEVerificationQuiz(currentSubject.name);
+      setQuizQuestions(fallback);
+      setIsGeminiGenerated(false);
+    }
+
+    setIsLoadingQuiz(false);
     setUserAnswers({});
     setStep(2);
   };
@@ -54,22 +76,20 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
 
     setQuizScore(correctCount);
 
-    // Calculate EXP & Gold rewards based on study effort + quiz score
     const baseExp = (Number(lecturesDone) * 40) + (Number(questionsDone) * 2);
     const bonusMultiplier = correctCount === 3 ? 1.5 : correctCount === 2 ? 1.2 : 0.8;
     const earnedExp = Math.round(baseExp * bonusMultiplier);
     const earnedGold = Math.round(earnedExp * 0.4);
 
-    // Update User State & Subject Progress
     setUserData(prev => {
-      const updatedCampaigns = prev.campaigns.map(camp => {
+      const updatedCampaigns = (prev.campaigns || []).map(camp => {
         if (camp.id !== prev.activeCampaignId) return camp;
-        const updatedSubjects = camp.subjects.map(subj => {
+        const updatedSubjects = (camp.subjects || []).map(subj => {
           if (subj.id !== (currentSubject?.id || subj.id)) return subj;
           return {
             ...subj,
-            completedLectures: Math.min(subj.totalLectures, subj.completedLectures + Number(lecturesDone)),
-            completedQuestions: subj.completedQuestions + Number(questionsDone)
+            completedLectures: Math.min(subj.totalLectures, (subj.completedLectures || 0) + Number(lecturesDone)),
+            completedQuestions: (subj.completedQuestions || 0) + Number(questionsDone)
           };
         });
         return { ...camp, subjects: updatedSubjects };
@@ -87,11 +107,11 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
         ...prev,
         profile: {
           ...prev.profile,
-          totalExp: prev.profile.totalExp + earnedExp,
-          gold: prev.profile.gold + earnedGold
+          totalExp: (prev.profile?.totalExp || 0) + earnedExp,
+          gold: (prev.profile?.gold || 0) + earnedGold
         },
         campaigns: updatedCampaigns,
-        activityLogs: [newLog, ...prev.activityLogs]
+        activityLogs: [newLog, ...(prev.activityLogs || [])]
       };
     });
 
@@ -105,8 +125,8 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-fade-in">
-      <div className="cyber-panel max-w-lg w-full rounded-3xl p-6 border-2 border-cyan-500/60 shadow-2xl relative bg-slate-950/95 cyber-hud-brackets font-orbitron">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-fade-in font-orbitron">
+      <div className="cyber-panel max-w-lg w-full rounded-3xl p-6 border-2 border-cyan-500/60 shadow-2xl relative bg-slate-950/95 cyber-hud-brackets">
         
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
           <X className="w-5 h-5" />
@@ -175,9 +195,10 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-cyan-500 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-slate-950 font-black text-xs uppercase tracking-widest shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2"
+              disabled={isLoadingQuiz}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-cyan-500 to-pink-500 hover:from-purple-500 hover:to-pink-400 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-widest shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2"
             >
-              <span>PROCEED TO GATE AI QUIZ VERIFICATION</span>
+              <span>{isLoadingQuiz ? 'GEMINI AI GENERATING QUIZ...' : 'PROCEED TO GATE AI VERIFICATION'}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </form>
@@ -191,20 +212,24 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
                 <HelpCircle className="w-5 h-5 text-cyan-400" />
                 GATE KNOWLEDGE CHECK: {currentSubject?.name}
               </h3>
-              <span className="text-xs text-slate-400 font-mono">{Object.keys(userAnswers).length}/3 Answered</span>
+              {isGeminiGenerated && (
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                  LIVE GEMINI AI
+                </span>
+              )}
             </div>
 
             <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
               {quizQuestions.map((q, qIdx) => (
-                <div key={q.id} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div key={q.id || qIdx} className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
                   <p className="text-xs font-bold text-white">Q{qIdx + 1}. {q.question}</p>
                   <div className="grid grid-cols-1 gap-1.5 text-xs font-rajdhani">
                     {q.options.map((opt, optIdx) => (
                       <button
                         key={optIdx}
-                        onClick={() => handleSelectAnswer(q.id, optIdx)}
+                        onClick={() => handleSelectAnswer(q.id || qIdx, optIdx)}
                         className={`text-left p-2.5 rounded-lg border transition ${
-                          userAnswers[q.id] === optIdx
+                          userAnswers[q.id || qIdx] === optIdx
                             ? 'bg-cyan-950 border-cyan-400 text-cyan-200 font-bold'
                             : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
                         }`}
@@ -238,17 +263,6 @@ export default function NightReportModal({ isOpen, onClose, userData, setUserDat
             <p className="text-sm font-rajdhani text-cyan-300">
               Quiz Accuracy Score: <span className="font-bold font-mono text-white">{quizScore}/3</span> Correct
             </p>
-
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex justify-around text-xs">
-              <div>
-                <span className="text-slate-400 block text-[10px]">EXP GAINED</span>
-                <span className="text-lg font-black text-emerald-400 font-mono">+{Math.round((Number(lecturesDone) * 40 + Number(questionsDone) * 2) * (quizScore === 3 ? 1.5 : 1.0))} EXP</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px]">GOLD EARNED</span>
-                <span className="text-lg font-black text-amber-400 font-mono">+{Math.round(((Number(lecturesDone) * 40 + Number(questionsDone) * 2) * 0.4))} GOLD</span>
-              </div>
-            </div>
 
             <button
               onClick={handleFinish}

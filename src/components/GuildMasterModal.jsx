@@ -1,25 +1,41 @@
-import React, { useState } from 'react';
-import { Bot, Sparkles, MessageSquare, Shield, Flame, RefreshCw, Cpu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bot, Sparkles, MessageSquare, Shield, Flame, RefreshCw, Cpu, Key } from 'lucide-react';
 import { generateGuildMasterMessage } from '../utils/rpgEngine';
+import { generateCoPilotAdviceWithGemini, getStoredGeminiApiKey } from '../utils/geminiAiService';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
-export default function GuildMasterModal({ userData, setUserData }) {
+export default function GuildMasterModal({ userData, setUserData, onOpenApiKeyModal }) {
   const [personality, setPersonality] = useState(userData?.guildMasterPersonality || 'cyber_mentor');
+  const [aiQuote, setAiQuote] = useState('');
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const message = generateGuildMasterMessage({
+  const hasApiKey = Boolean(getStoredGeminiApiKey());
+
+  const defaultMessage = generateGuildMasterMessage({
     name: userData?.profile?.name || 'Hunter Candidate',
-    level: userData?.profile?.totalExp ? Math.floor(Math.sqrt(userData.profile.totalExp / 100)) + 1 : 1,
-    streak: userData?.profile?.streak || 1,
-    restDayActive: userData?.profile?.restDayActiveUntil && new Date(userData.profile.restDayActiveUntil) >= new Date(),
     totalExp: userData?.profile?.totalExp || 0
   });
 
-  const messageQuote = typeof message === 'string' ? message : message?.quote || "Welcome back, Hunter. A new day of GATE preparation awaits.";
+  const fetchGeminiAdvice = async () => {
+    if (!hasApiKey) return;
+    setIsLoadingAi(true);
+    const customQuote = await generateCoPilotAdviceWithGemini(userData);
+    if (customQuote) {
+      setAiQuote(customQuote);
+    }
+    setIsLoadingAi(false);
+  };
+
+  useEffect(() => {
+    fetchGeminiAdvice();
+  }, [userData?.profile?.totalExp]);
+
+  const displayQuote = aiQuote || defaultMessage.quote;
 
   const personalities = [
-    { id: 'cyber_mentor', name: '🤖 Cyber AI Core', avatar: '🤖' },
-    { id: 'strict_sensei', name: '⚔️ Dungeon Commander', avatar: '🧙‍♂️' },
+    { id: 'cyber_mentor', name: '🤖 Antigravity Core', avatar: '🤖' },
+    { id: 'strict_sensei', name: '⚔️ Quantum Commander', avatar: '🧙‍♂️' },
     { id: 'anime_hero', name: '⚡ Mech Guild Master', avatar: '🦸' }
   ];
 
@@ -42,34 +58,49 @@ export default function GuildMasterModal({ userData, setUserData }) {
 
         {/* Dynamic Holographic Dialogue */}
         <div className="flex-1 space-y-2">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xs font-black tracking-widest text-cyan-400 uppercase flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                AI GUILD MENTOR TERMINAL
+                ANTIGRAVITY QUANTUM CO-PILOT
               </span>
+              {hasApiKey && (
+                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                  GEMINI AI ACTIVE
+                </span>
+              )}
             </div>
 
-            <select
-              value={personality}
-              onChange={(e) => {
-                audio.playClick();
-                triggerHapticFeedback('light');
-                setPersonality(e.target.value);
-                setUserData(prev => ({ ...prev, guildMasterPersonality: e.target.value }));
-              }}
-              className="bg-slate-900 border border-cyan-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-cyan-300 focus:outline-none cursor-pointer"
-            >
-              {personalities.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onOpenApiKeyModal}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-400 text-[10px] text-cyan-300 font-bold flex items-center gap-1"
+              >
+                <Key className="w-3 h-3 text-cyan-400" />
+                <span>{hasApiKey ? 'AI Key' : 'Setup Gemini AI'}</span>
+              </button>
+
+              <select
+                value={personality}
+                onChange={(e) => {
+                  audio.playClick();
+                  triggerHapticFeedback('light');
+                  setPersonality(e.target.value);
+                  setUserData(prev => ({ ...prev, guildMasterPersonality: e.target.value }));
+                }}
+                className="bg-slate-900 border border-cyan-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-cyan-300 focus:outline-none cursor-pointer"
+              >
+                {personalities.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <p className="text-sm font-rajdhani font-semibold text-slate-100 italic leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-cyan-500/30 text-cyan-100 shadow-inner">
-            "{messageQuote}"
+            "{isLoadingAi ? 'Communicating with Antigravity AI Subspace...' : displayQuote}"
           </p>
         </div>
 

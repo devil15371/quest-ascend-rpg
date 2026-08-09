@@ -1,4 +1,4 @@
-// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Scaling, and Guild Master AI Quotes
+// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Scaling, Night Lock, and Guild Master AI Quotes
 
 /**
  * Cultivation Realm Definitions
@@ -53,6 +53,15 @@ export const EXP_TABLE = {
 export function isEarlyBirdTime() {
   const hour = new Date().getHours();
   return hour >= 5 && hour < 9;
+}
+
+/**
+ * Check if Night Report is unlocked (Only accessible between 2:00 AM and 6:00 AM)
+ */
+export function isNightReportUnlocked(devOverride = false) {
+  if (devOverride) return true;
+  const hour = new Date().getHours();
+  return hour >= 2 && hour < 6;
 }
 
 /**

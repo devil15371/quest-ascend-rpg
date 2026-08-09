@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Download, Sparkles, Trophy, Cpu, ChevronDown, Moon } from 'lucide-react';
+import { Volume2, VolumeX, Download, Sparkles, Trophy, Cpu, ChevronDown, Moon, Lock, Key } from 'lucide-react';
 import { audio } from '../utils/audioEngine';
+import { isNightReportUnlocked } from '../utils/rpgEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
-export default function Navbar({ userData, setUserData, isMuted, setIsMuted, onOpenLevelUp, onOpenNightReport }) {
+export default function Navbar({ userData, setUserData, isMuted, setIsMuted, onOpenLevelUp, onOpenNightReport, onOpenApiKeyModal }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [devOverride, setDevOverride] = useState(false);
+
+  const nightUnlocked = isNightReportUnlocked(devOverride);
 
   const toggleMute = () => {
     const muted = audio.toggleMute();
@@ -48,14 +52,30 @@ export default function Navbar({ userData, setUserData, isMuted, setIsMuted, onO
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* Night Report Trigger Button */}
-          <button
-            onClick={onOpenNightReport}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase"
-          >
-            <Moon className="w-4 h-4 text-amber-300 animate-pulse" />
-            <span className="hidden sm:inline">Night Report</span>
-          </button>
+          {/* Night Report Trigger / Lock Status */}
+          {nightUnlocked ? (
+            <button
+              onClick={onOpenNightReport}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase"
+            >
+              <Moon className="w-4 h-4 text-amber-300 animate-pulse" />
+              <span className="hidden sm:inline">Night Report</span>
+            </button>
+          ) : (
+            <div 
+              onClick={() => {
+                if (window.confirm("Night Report is locked until after 2:00 AM. Unlock dev test mode?")) {
+                  setDevOverride(true);
+                  onOpenNightReport();
+                }
+              }}
+              className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:border-purple-500/50 hover:text-purple-300 transition"
+              title="Unlocks after 2:00 AM"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">Night Lock (2:00 AM)</span>
+            </div>
+          )}
 
           {/* Sound Toggle */}
           <button
@@ -77,11 +97,18 @@ export default function Navbar({ userData, setUserData, isMuted, setIsMuted, onO
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 text-xs font-orbitron space-y-1">
+                <button
+                  onClick={() => { setDropdownOpen(false); onOpenApiKeyModal(); }}
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-cyan-950/80 text-cyan-300 font-bold flex items-center gap-2"
+                >
+                  <Key className="w-4 h-4 text-cyan-400" />
+                  <span>Setup Gemini AI Key</span>
+                </button>
                 <a
                   href="https://raw.githubusercontent.com/devil15371/quest-ascend-rpg/main/public/QuestAscend.apk"
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-cyan-950/80 text-cyan-300 font-bold flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
                 >
                   <span>📲 Download Android APK (.apk)</span>
                 </a>
