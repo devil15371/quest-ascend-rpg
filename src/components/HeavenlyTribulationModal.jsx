@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Flame, ShieldAlert, Zap, CheckCircle, AlertOctagon, Award, Sparkles } from 'lucide-react';
+import { getCultivationRealm } from '../utils/rpgEngine';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
@@ -38,7 +39,7 @@ const TRIBULATION_QUESTIONS = [
   }
 ];
 
-export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm, userData, setUserData }) {
+export default function HeavenlyTribulationModal({ isOpen, onClose, currentLevel = 1, userData, setUserData }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [isFinished, setIsFinished] = useState(false);
@@ -46,6 +47,9 @@ export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm,
   const [score, setScore] = useState(0);
 
   if (!isOpen) return null;
+
+  const currentRealm = getCultivationRealm(currentLevel);
+  const targetRealm = getCultivationRealm(currentRealm.maxLevel + 1);
 
   const currentQ = TRIBULATION_QUESTIONS[currentIdx];
 
@@ -59,7 +63,6 @@ export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm,
     if (currentIdx < TRIBULATION_QUESTIONS.length - 1) {
       setCurrentIdx(prev => prev + 1);
     } else {
-      // Calculate score
       let correct = 0;
       TRIBULATION_QUESTIONS.forEach((q, idx) => {
         if (userAnswers[idx] === q.correctIndex) correct++;
@@ -77,8 +80,8 @@ export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm,
           ...prev,
           profile: {
             ...prev.profile,
-            totalExp: prev.profile.totalExp + 250,
-            gold: prev.profile.gold + 100
+            totalExp: (prev.profile?.totalExp || 0) + 250,
+            gold: (prev.profile?.gold || 0) + 100
           }
         }));
       } else {
@@ -88,7 +91,7 @@ export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm,
           ...prev,
           profile: {
             ...prev.profile,
-            totalExp: Math.max(0, prev.profile.totalExp - 50)
+            totalExp: Math.max(0, (prev.profile?.totalExp || 0) - 50)
           }
         }));
       }
@@ -109,7 +112,7 @@ export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm,
               <Flame className="w-7 h-7 text-red-500 animate-bounce" />
               <div>
                 <h3 className="text-base font-black text-red-400 uppercase tracking-widest">HEAVENLY TRIBULATION MOCK TEST</h3>
-                <p className="text-xs font-rajdhani text-slate-300">Breakthrough Trial to {targetRealm?.name || 'Next Realm'}</p>
+                <p className="text-xs font-rajdhani text-slate-300">Breakthrough Trial to <span className="text-cyan-400 font-bold">{targetRealm.name}</span></p>
               </div>
             </div>
 
@@ -158,7 +161,7 @@ export default function HeavenlyTribulationModal({ isOpen, onClose, targetRealm,
                 </div>
                 <h3 className="text-2xl font-black text-amber-400 uppercase">TRIBULATION PASSED!</h3>
                 <p className="text-sm font-rajdhani text-slate-300">
-                  You survived the Heavenly Tribulation with <span className="text-white font-bold">{score}/4</span> score! You have ascended to <span className="text-cyan-400 font-bold">{targetRealm?.name}</span>!
+                  You survived the Heavenly Tribulation with <span className="text-white font-bold">{score}/4</span> score! You have ascended to <span className="text-cyan-400 font-bold">{targetRealm.name}</span>!
                 </p>
                 <div className="p-3 rounded-xl bg-slate-900 border border-amber-500/40 text-xs font-mono text-amber-300">
                   +250 EXP • +100 Gold • Realm Aura Unlocked

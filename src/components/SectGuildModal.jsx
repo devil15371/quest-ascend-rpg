@@ -56,8 +56,9 @@ export default function SectGuildModal({ isOpen, onClose }) {
                       </span>
                     )}
                   </h4>
-                  <div className="flex items-center gap-3 text-xs font-rajdhani text-slate-400 mt-1">
+                  <div className="flex items-center gap-2 text-xs font-rajdhani text-slate-400 mt-1 flex-wrap">
                     <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-cyan-400" /> {sect.baseMembers + (isActive ? 1 : 0)} Scholars</span>
+                    <span className="text-emerald-400 font-bold">• 3 active cultivators online</span>
                     <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-amber-400" /> {totalQi.toLocaleString()} Qi</span>
                   </div>
                   {sect.userContributionQi > 0 && (

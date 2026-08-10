@@ -1,4 +1,4 @@
-// Gemini AI Service: Xianxia Dao Ancestor Speech, Live GATE Quizzes, Feynman Evaluation, & Dao Forge Resume
+// Gemini AI Service: Xianxia Dao Ancestor Speech, Live GATE Quizzes, Feynman Evaluation, & Verified Dao Forge Resume
 
 const API_KEY_STORAGE_KEY = 'QUEST_ASCEND_GEMINI_API_KEY';
 
@@ -152,21 +152,32 @@ Do not format with backticks.`;
 }
 
 /**
- * Generate Ascension Resume (Dao Forge)
+ * Generate Verified Ascension Resume (Dao Forge) bound strictly to studied subjects
  */
 export async function generateAscensionResume(userData, apiKey) {
   const effectiveKey = apiKey || getStoredGeminiApiKey();
   const name = userData?.profile?.name || 'Candidate';
   const level = userData?.profile?.totalExp ? Math.floor(Math.sqrt(userData.profile.totalExp / 100)) + 1 : 1;
 
+  const activeCampaign = userData?.campaigns?.find(c => c.id === userData.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
+  const studiedSubjects = (activeCampaign?.subjects || []).filter(s => (s.completedLectures || 0) > 0 || (s.completedQuestions || 0) > 0);
+
+  // If no topics have been studied yet, show cold forge state!
+  if (studiedSubjects.length === 0) {
+    return `# 🗡️ DAO FORGE TECHNICAL RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### ❄️ The Forge is Cold\n*Awaken your first synapse by completing a lecture or practice session to begin forging your technical GATE resume.*`;
+  }
+
+  const domainBullets = studiedSubjects.map(s => `- **${s.name}**: Mastered ${s.completedLectures}/${s.totalLectures} Lectures and ${s.completedQuestions} Practice PYQs`).join('\n');
+
   if (!effectiveKey) {
-    return `# DAO FORGE ASCENSION RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### Mastered Technical Domains\n- **Operating Systems**: Process Synchronization, Semaphores, Page Replacement.\n- **Database Systems**: ACID Transactions, B+ Tree Indexing, SQL Joins.\n- **Algorithms**: Dynamic Programming, Dijkstra Shortest Path, Min-Heap.\n\n*Verified by QuestAscend Neural Engine*`;
+    return `# 🗡️ DAO FORGE TECHNICAL RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### Mastered Technical Domains\n${domainBullets}\n\n*Verified by QuestAscend Neural Skills Graph*`;
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
 
   const prompt = `Generate a high-impact technical GATE CS & Software Engineer Resume for candidate "${name}", Level ${level} Scholar.
-Format as Markdown with sections: Executive Summary, Mastered Core CS Domains, Proven Technical Achievements, and GATE CS Readiness Rating. Make it sound professional and elite!`;
+Include these STRICTLY VERIFIED mastered subjects:\n${domainBullets}\n
+Format as Markdown with sections: Executive Summary, Mastered Technical Domains, and GATE CS Readiness Rating. Make it sound professional and elite!`;
 
   try {
     const response = await fetch(endpoint, {
@@ -181,6 +192,6 @@ Format as Markdown with sections: Executive Summary, Mastered Core CS Domains, P
     const data = await response.json();
     return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
   } catch (e) {
-    return `# DAO FORGE ASCENSION RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### Mastered Technical Domains\n- **Operating Systems**: Process Synchronization, Semaphores.\n- **Database Systems**: ACID Transactions, B+ Tree Indexing.\n- **Algorithms**: Dynamic Programming, Dijkstra.`;
+    return `# 🗡️ DAO FORGE TECHNICAL RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### Mastered Technical Domains\n${domainBullets}`;
   }
 }
