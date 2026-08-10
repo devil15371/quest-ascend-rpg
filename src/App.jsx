@@ -14,6 +14,11 @@ import ThreeBackground from './components/ThreeBackground';
 import Brain3DVisualizer from './components/Brain3DVisualizer';
 import NightReportModal from './components/NightReportModal';
 import ApiKeyModal from './components/ApiKeyModal';
+import HeavenlyTribulationModal from './components/HeavenlyTribulationModal';
+import FeynmanDiscipleModal from './components/FeynmanDiscipleModal';
+import PurgeStateModal from './components/PurgeStateModal';
+import SectGuildModal from './components/SectGuildModal';
+import AscensionResumeModal from './components/AscensionResumeModal';
 
 import { loadUserData, saveUserData } from './utils/storage';
 import { calculateLevel } from './utils/rpgEngine';
@@ -24,31 +29,29 @@ import { BookOpen, Calendar, ShoppingBag, History, Brain, Moon } from 'lucide-re
 export default function App() {
   const [userData, setUserData] = useState(() => loadUserData());
   const [isMuted, setIsMuted] = useState(false);
-  const [activeTab, setActiveTab] = useState('subjects'); // 'subjects', 'brain', 'quests', 'shop', 'history'
+  const [activeTab, setActiveTab] = useState('subjects');
 
   const [isLevelUpOpen, setIsLevelUpOpen] = useState(false);
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isAddQuestOpen, setIsAddQuestOpen] = useState(false);
   const [isNightReportOpen, setIsNightReportOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isTribulationOpen, setIsTribulationOpen] = useState(false);
+  const [isFeynmanOpen, setIsFeynmanOpen] = useState(false);
+  const [isPurgeStateOpen, setIsPurgeStateOpen] = useState(false);
+  const [isSectGuildOpen, setIsSectGuildOpen] = useState(false);
+  const [isAscensionResumeOpen, setIsAscensionResumeOpen] = useState(false);
 
-  const [prevLevel, setPrevLevel] = useState(() => calculateLevel(userData?.profile?.totalExp || 0).level);
+  const levelInfo = calculateLevel(userData?.profile?.totalExp || 0);
 
   // Initialize native mobile reminders
   useEffect(() => {
     scheduleMobileReminders();
   }, []);
 
-  // Auto save state & check level-up trigger
+  // Auto save state
   useEffect(() => {
     saveUserData(userData);
-
-    const currentLevel = calculateLevel(userData?.profile?.totalExp || 0).level;
-    if (currentLevel > prevLevel) {
-      setIsLevelUpOpen(true);
-      triggerHapticFeedback('levelUp');
-      setPrevLevel(currentLevel);
-    }
   }, [userData]);
 
   return (
@@ -63,18 +66,12 @@ export default function App() {
         setUserData={setUserData}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
-        onOpenLevelUp={() => {
-          triggerHapticFeedback('medium');
-          setIsLevelUpOpen(true);
-        }}
-        onOpenNightReport={() => {
-          triggerHapticFeedback('medium');
-          setIsNightReportOpen(true);
-        }}
-        onOpenApiKeyModal={() => {
-          triggerHapticFeedback('light');
-          setIsApiKeyModalOpen(true);
-        }}
+        onOpenLevelUp={() => setIsLevelUpOpen(true)}
+        onOpenNightReport={() => setIsNightReportOpen(true)}
+        onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+        onOpenSectGuild={() => setIsSectGuildOpen(true)}
+        onOpenAscensionResume={() => setIsAscensionResumeOpen(true)}
+        onOpenTribulation={() => setIsTribulationOpen(true)}
       />
 
       {/* Main Container */}
@@ -171,6 +168,8 @@ export default function App() {
           {activeTab === 'brain' && (
             <Brain3DVisualizer 
               userData={userData}
+              onOpenPurgeState={() => setIsPurgeStateOpen(true)}
+              onOpenFeynman={() => setIsFeynmanOpen(true)}
             />
           )}
 
@@ -204,7 +203,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center text-xs font-rajdhani text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block relative z-10">
-        <p>QuestAscend RPG System • Powered by Antigravity Quantum Co-Pilot & Gemini 2.5 Flash AI Engine</p>
+        <p>QuestAscend Xianxia Solo Leveling Engine • Powered by Gemini 2.5 Flash & 40Hz Binaural Synthesizer</p>
       </footer>
 
       {/* Modals */}
@@ -237,6 +236,41 @@ export default function App() {
       <ApiKeyModal
         isOpen={isApiKeyModalOpen}
         onClose={() => setIsApiKeyModalOpen(false)}
+      />
+
+      <HeavenlyTribulationModal
+        isOpen={isTribulationOpen}
+        onClose={() => setIsTribulationOpen(false)}
+        targetRealm={levelInfo.realm}
+        userData={userData}
+        setUserData={setUserData}
+      />
+
+      <FeynmanDiscipleModal
+        isOpen={isFeynmanOpen}
+        onClose={() => setIsFeynmanOpen(false)}
+        userData={userData}
+        setUserData={setUserData}
+      />
+
+      <PurgeStateModal
+        isOpen={isPurgeStateOpen}
+        onClose={() => setIsPurgeStateOpen(false)}
+        userData={userData}
+        setUserData={setUserData}
+      />
+
+      <SectGuildModal
+        isOpen={isSectGuildOpen}
+        onClose={() => setIsSectGuildOpen(false)}
+        userData={userData}
+        setUserData={setUserData}
+      />
+
+      <AscensionResumeModal
+        isOpen={isAscensionResumeOpen}
+        onClose={() => setIsAscensionResumeOpen(false)}
+        userData={userData}
       />
 
     </div>

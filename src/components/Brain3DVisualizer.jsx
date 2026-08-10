@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Activity, AlertTriangle, Brain, Cpu, Flame, RefreshCw, Zap, Sparkles, Eye, Info, Target, Layers } from 'lucide-react';
+import { Activity, AlertTriangle, Brain, Cpu, Flame, RefreshCw, Zap, Sparkles, Eye, Info, Target, Layers, Shield } from 'lucide-react';
 import { calculateGlobalBrainMetrics, BRAIN_REGIONS } from '../utils/neuroEngine';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
@@ -54,16 +54,14 @@ function getOrCreateTextSprite(text, textColor = '#06b6d4', bgColor = 'rgba(2, 6
     sprite.scale.set(50, 12, 1);
     return sprite;
   } catch (e) {
-    console.error("Text sprite creation error:", e);
     return new THREE.Group();
   }
 }
 
-export default function Brain3DVisualizer({ userData }) {
+export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFeynman }) {
   const mountRef = useRef(null);
   const [activeHoverNode, setActiveHoverNode] = useState(null);
   const [selectedNodeDetails, setSelectedNodeDetails] = useState(null);
-  const [webGlSupported, setWebGlSupported] = useState(true);
 
   const activeCampaign = userData?.campaigns?.find(c => c.id === userData.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
   const subjects = activeCampaign?.subjects || [];
@@ -111,16 +109,27 @@ export default function Brain3DVisualizer({ userData }) {
       brainMesh.scale.set(0.95, 1.0, 1.3);
       brainGroup.add(brainMesh);
 
+      // Orbiting Divine Artifact: The Semaphore Sword of Concurrency
+      const swordGeo = new THREE.ConeGeometry(6, 40, 4);
+      const swordMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true });
+      const divineSword = new THREE.Mesh(swordGeo, swordMat);
+      divineSword.position.set(190, 0, 0);
+      brainGroup.add(divineSword);
+
       const allGraphNodes = [];
       const allBezierConnections = [];
       const actionPotentialPulses = [];
+      const heartDemonNodes = [];
 
       const clusterColors = ['#06b6d4', '#a855f7', '#10b981', '#f97316', '#ec4899'];
 
       subjects.forEach((subject, subjectIdx) => {
         const state = brainMetrics.subjectStates.find(s => s.subjectId === subject.id) || { retentionPercent: 80, statusColor: '#06b6d4', syllabusTree: [] };
         const region = BRAIN_REGIONS[subjectIdx % BRAIN_REGIONS.length];
-        const themeColor = clusterColors[subjectIdx % clusterColors.length];
+        
+        // Heart Demon Check: If retention < 50%, spawn dark red Heart Demon aura
+        const isCorrupted = state.retentionPercent < 50;
+        const themeColor = isCorrupted ? '#ef4444' : clusterColors[subjectIdx % clusterColors.length];
 
         const hubPos = new THREE.Vector3(
           region.basePos.x + (Math.random() - 0.5) * 30,
@@ -130,11 +139,15 @@ export default function Brain3DVisualizer({ userData }) {
 
         const hubRadius = 14;
         const hubGeo = new THREE.SphereGeometry(hubRadius, 24, 24);
-        const hubMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: 0.95 });
+        const hubMat = new THREE.MeshBasicMaterial({ 
+          color: new THREE.Color(themeColor), 
+          transparent: true, 
+          opacity: isCorrupted ? 1.0 : 0.95 
+        });
         const hubMesh = new THREE.Mesh(hubGeo, hubMat);
         hubMesh.position.copy(hubPos);
 
-        const hubTextSprite = getOrCreateTextSprite(`🧠 ${subject.name}`, themeColor);
+        const hubTextSprite = getOrCreateTextSprite(isCorrupted ? `🖤 DEMON: ${subject.name}` : `🧠 ${subject.name}`, themeColor);
         hubTextSprite.position.set(0, hubRadius + 14, 0);
         hubTextSprite.visible = true;
         hubMesh.add(hubTextSprite);
@@ -145,6 +158,7 @@ export default function Brain3DVisualizer({ userData }) {
           type: 'SUBJECT',
           subject,
           state,
+          isCorrupted,
           region: region.name,
           themeColor,
           connections: [],
@@ -152,6 +166,7 @@ export default function Brain3DVisualizer({ userData }) {
         };
         brainGroup.add(hubMesh);
         allGraphNodes.push(hubMesh);
+        if (isCorrupted) heartDemonNodes.push(hubMesh);
 
         (state.syllabusTree || []).forEach((topicObj) => {
           const topicPos = new THREE.Vector3(
@@ -207,53 +222,6 @@ export default function Brain3DVisualizer({ userData }) {
           brainGroup.add(pulse1);
 
           actionPotentialPulses.push({ mesh: pulse1, curve: curve1, progress: Math.random() });
-
-          (topicObj.subTopics || []).forEach((subName) => {
-            const subPos = new THREE.Vector3(
-              topicPos.x + (Math.random() - 0.5) * 60,
-              topicPos.y + (Math.random() - 0.5) * 60,
-              topicPos.z + (Math.random() - 0.5) * 60
-            );
-
-            const subRadius = 5;
-            const subGeo = new THREE.SphereGeometry(subRadius, 12, 12);
-            const subMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: 0.75 });
-            const subMesh = new THREE.Mesh(subGeo, subMat);
-            subMesh.position.copy(subPos);
-
-            const subTextSprite = getOrCreateTextSprite(`🔹 ${subName}`, themeColor);
-            subTextSprite.scale.set(36, 9, 1);
-            subTextSprite.position.set(0, subRadius + 7, 0);
-            subTextSprite.visible = false;
-            subMesh.add(subTextSprite);
-
-            subMesh.userData = {
-              name: subName,
-              level: 3,
-              type: 'SUBTOPIC',
-              subject,
-              state,
-              region: region.name,
-              themeColor,
-              connections: [],
-              sprite: subTextSprite
-            };
-            brainGroup.add(subMesh);
-            allGraphNodes.push(subMesh);
-
-            const controlPt2 = new THREE.Vector3().addVectors(topicPos, subPos).multiplyScalar(0.5);
-            const curve2 = new THREE.CubicBezierCurve3(topicPos, controlPt2, controlPt2, subPos);
-            const pts2 = curve2.getPoints(16);
-            const lineGeo2 = new THREE.BufferGeometry().setFromPoints(pts2);
-            const lineMat2 = new THREE.LineBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: 0.35 });
-            const line2 = new THREE.Line(lineGeo2, lineMat2);
-            line2.userData = { nodeA: topicMesh, nodeB: subMesh, defaultOpacity: 0.35 };
-            brainGroup.add(line2);
-            allBezierConnections.push(line2);
-
-            topicMesh.userData.connections.push(subMesh);
-            subMesh.userData.connections.push(topicMesh);
-          });
         });
       });
 
@@ -290,14 +258,6 @@ export default function Brain3DVisualizer({ userData }) {
                 node.scale.set(0.85, 0.85, 0.85);
               }
             });
-
-            allBezierConnections.forEach(line => {
-              if (connectedSet.has(line.userData.nodeA) && connectedSet.has(line.userData.nodeB)) {
-                line.material.opacity = 0.95;
-              } else {
-                line.material.opacity = 0.04;
-              }
-            });
           }
         } else if (activeHoverNode) {
           setActiveHoverNode(null);
@@ -305,9 +265,6 @@ export default function Brain3DVisualizer({ userData }) {
             node.material.opacity = 0.9;
             if (node.userData.sprite && node.userData.level > 1) node.userData.sprite.visible = false;
             node.scale.set(1, 1, 1);
-          });
-          allBezierConnections.forEach(line => {
-            line.material.opacity = line.userData.defaultOpacity;
           });
         }
       };
@@ -333,10 +290,23 @@ export default function Brain3DVisualizer({ userData }) {
       domElement.addEventListener('pointermove', onPointerMove);
       domElement.addEventListener('click', onClickNode);
 
+      let swordAngle = 0;
+
       const animate = () => {
         animId = requestAnimationFrame(animate);
         if (controls) controls.update();
         if (brainGroup) brainGroup.rotation.y += 0.0012;
+
+        // Orbit Divine Artifact
+        swordAngle += 0.015;
+        divineSword.position.x = Math.cos(swordAngle) * 210;
+        divineSword.position.z = Math.sin(swordAngle) * 210;
+        divineSword.rotation.y += 0.03;
+
+        // Pulse Heart Demon Red Shaders
+        heartDemonNodes.forEach(mesh => {
+          mesh.scale.setScalar(1 + Math.sin(Date.now() * 0.008) * 0.15);
+        });
 
         actionPotentialPulses.forEach(pulse => {
           pulse.progress += 0.006;
@@ -364,7 +334,6 @@ export default function Brain3DVisualizer({ userData }) {
       };
     } catch (err) {
       console.warn("Brain3DVisualizer fallback mode:", err);
-      setWebGlSupported(false);
     }
   }, [userData]);
 
@@ -377,70 +346,45 @@ export default function Brain3DVisualizer({ userData }) {
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-orbitron font-black text-white flex items-center gap-2">
               <Brain className="w-6 h-6 text-cyan-400 animate-pulse" />
-              CLEAN OBSIDIAN 3D KNOWLEDGE GRAPH
+              OBSIDIAN 3D BRAIN MATRIX & HEART DEMONS
             </h2>
             <span className="text-[9px] font-orbitron font-extrabold px-2.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-              ZERO CLUTTER • SMOOTH ZOOM
+              ORBITING 3D DIVINE ARTIFACTS
             </span>
           </div>
           <p className="text-xs font-rajdhani text-slate-400 mt-1">
-            Obsidian Graph Style: Sleek 3D graph layout with hover-reveal topic labels & smooth native pinch/mouse wheel zoom.
+            Dark red nodes indicate Heart Demons (&lt;50% retention). Tap "Purge Heart Demons" to launch a 25-min Pomodoro session!
           </p>
         </div>
 
-        {/* Retention Badge */}
-        <div className="px-4 py-2 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 font-orbitron font-extrabold text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20">
-          <Activity className="w-4 h-4 text-cyan-400 animate-pulse" />
-          <span>{brainMetrics.averageRetention}% RETENTION</span>
+        {/* Action Triggers */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenFeynman}
+            className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs font-orbitron flex items-center gap-1.5 shadow"
+          >
+            <span>🎓 Feynman Disciple</span>
+          </button>
+          <button
+            onClick={onOpenPurgeState}
+            className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs font-orbitron flex items-center gap-1.5 shadow"
+          >
+            <Flame className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>🖤 Purge Heart Demons</span>
+          </button>
         </div>
       </div>
 
-      {/* Main 3D Obsidian Graph Viewport & Inspector Sidebar */}
+      {/* Main 3D Viewport */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* 3D WebGL Obsidian Graph Viewport */}
         <div className="lg:col-span-2 cyber-panel rounded-2xl border border-cyan-500/40 bg-slate-950/90 cyber-hud-brackets relative h-[480px] sm:h-[540px] overflow-hidden flex flex-col justify-between p-4">
           
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
             <span className="text-[10px] font-orbitron font-bold uppercase tracking-widest text-cyan-400 bg-slate-950/90 px-3 py-1 rounded border border-cyan-500/40 shadow">
-              Obsidian 3D Physics Graph (Use Wheel / Pinch to Zoom)
+              Obsidian 3D Brain Matrix (Orbiting Semaphore Sword Active)
             </span>
           </div>
-
-          {/* Sci-Fi Floating HUD Panel on Click */}
-          {selectedNodeDetails && (
-            <div className="absolute top-4 right-4 z-20 bg-slate-950/95 border-2 border-cyan-400 p-4 rounded-2xl shadow-2xl max-w-xs animate-fade-in font-orbitron cyber-hud-brackets backdrop-blur-xl">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
-                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
-                  <Target className="w-3.5 h-3.5 text-cyan-400" /> Node Inspector
-                </span>
-                <button onClick={() => setSelectedNodeDetails(null)} className="text-xs text-slate-400 hover:text-white">✕</button>
-              </div>
-
-              <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/40">
-                Level {selectedNodeDetails.level} {selectedNodeDetails.type}
-              </span>
-
-              <h3 className="text-base font-black text-white mt-1.5 mb-1">{selectedNodeDetails.name}</h3>
-
-              <div className="text-xs font-rajdhani text-slate-300 space-y-1.5 my-3">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Parent Subject:</span>
-                  <span className="font-bold text-cyan-300">{selectedNodeDetails.subject?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Memory Retention:</span>
-                  <span style={{ color: selectedNodeDetails.state?.statusColor }} className="font-bold">
-                    {selectedNodeDetails.state?.retentionPercent}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Stability Half-Life:</span>
-                  <span className="font-bold text-purple-300">{selectedNodeDetails.state?.halfLifeDays} Days</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* WebGL Canvas Target */}
           <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
@@ -448,59 +392,34 @@ export default function Brain3DVisualizer({ userData }) {
           {/* Legend */}
           <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-wrap items-center justify-between gap-2 text-xs font-orbitron bg-slate-950/90 p-2.5 rounded-xl border border-slate-800">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-cyan-400 shadow-sm shadow-cyan-500/50" />
-              <span className="text-slate-300">Subject Hubs (Always Visible)</span>
+              <span className="w-3 h-3 rounded-full bg-cyan-400 shadow-sm" />
+              <span className="text-slate-300">Mastered Synapses</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-purple-400 shadow-sm shadow-purple-500/50" />
-              <span className="text-slate-300">Topic Nodes (Hover to Reveal)</span>
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+              <span className="text-red-400 font-bold">Heart Demons (Purge Needed)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-amber-400" />
+              <span className="text-amber-300 font-bold">🗡️ Semaphore Sword (+15% Shield)</span>
             </div>
           </div>
         </div>
 
         {/* Diagnostics Sidebar */}
-        <div className="space-y-4">
-          
-          <div className="cyber-panel p-5 rounded-2xl border border-purple-500/40 bg-slate-950/80 cyber-hud-brackets space-y-3 font-orbitron">
+        <div className="space-y-4 font-orbitron">
+          <div className="cyber-panel p-5 rounded-2xl border border-purple-500/40 bg-slate-950/80 cyber-hud-brackets space-y-3">
             <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-purple-400" /> Neuro-Diagnostics
+              <Shield className="w-4 h-4 text-amber-400" /> Forged Divine Artifacts
             </h3>
 
-            <div className="grid grid-cols-2 gap-2 text-xs font-orbitron">
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">ACTIVE SYNAPSES</span>
-                <span className="text-base font-black text-cyan-300">{brainMetrics.totalSynapses}</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">HALF-LIFE</span>
-                <span className="text-base font-black text-purple-300">{brainMetrics.averageHalfLife} Days</span>
-              </div>
+            <div className="p-3 rounded-xl bg-slate-900 border border-amber-500/40 space-y-1">
+              <span className="text-xs font-bold text-amber-300 block">🗡️ The Semaphore Sword of Concurrency</span>
+              <p className="text-[11px] font-rajdhani text-slate-300">
+                Passive Shield: Slows Ebbinghaus memory decay for Operating Systems by 15%.
+              </p>
             </div>
           </div>
-
-          {/* Subject Matrix */}
-          <div className="cyber-panel p-4 rounded-2xl border border-slate-800 bg-slate-950/80 max-h-80 overflow-y-auto space-y-2.5 font-orbitron">
-            <h4 className="text-xs font-bold text-slate-300 uppercase">Multi-Tier Syllabus Matrix</h4>
-            {brainMetrics.subjectStates.map(state => (
-              <div key={state.subjectId} className="space-y-1.5 p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-                <div className="flex items-center justify-between text-xs font-rajdhani font-bold text-white">
-                  <span>🧠 {state.subjectName}</span>
-                  <span style={{ color: state.statusColor }} className="font-mono">{state.retentionPercent}%</span>
-                </div>
-                <div className="pl-3 space-y-1 border-l border-cyan-500/30">
-                  {(state.syllabusTree || []).map((topic, tIdx) => (
-                    <div key={tIdx} className="text-[11px] font-rajdhani text-slate-400">
-                      <span className="text-purple-400 font-bold">⚡ {topic.topicName}</span>
-                      <div className="pl-2 text-[10px] text-slate-500">
-                        {(topic.subTopics || []).join(" • ")}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
         </div>
 
       </div>
