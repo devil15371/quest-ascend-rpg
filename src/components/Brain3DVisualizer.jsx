@@ -109,12 +109,28 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
       brainMesh.scale.set(0.95, 1.0, 1.3);
       brainGroup.add(brainMesh);
 
-      // Orbiting Divine Artifact: The Semaphore Sword of Concurrency
-      const swordGeo = new THREE.ConeGeometry(6, 40, 4);
-      const swordMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true });
-      const divineSword = new THREE.Mesh(swordGeo, swordMat);
-      divineSword.position.set(190, 0, 0);
-      brainGroup.add(divineSword);
+      // Low-Poly Emissive Semaphore Sword of Concurrency
+      const swordGroup = new THREE.Group();
+      
+      const bladeGeo = new THREE.ConeGeometry(5, 45, 4);
+      const bladeMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+      const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
+      bladeMesh.position.y = 22;
+      swordGroup.add(bladeMesh);
+
+      const guardGeo = new THREE.BoxGeometry(20, 3.5, 5);
+      const guardMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+      const guardMesh = new THREE.Mesh(guardGeo, guardMat);
+      swordGroup.add(guardMesh);
+
+      const hiltGeo = new THREE.CylinderGeometry(2, 2, 12, 8);
+      const hiltMat = new THREE.MeshBasicMaterial({ color: 0x475569 });
+      const hiltMesh = new THREE.Mesh(hiltGeo, hiltMat);
+      hiltMesh.position.y = -7;
+      swordGroup.add(hiltMesh);
+
+      swordGroup.position.set(190, 0, 0);
+      brainGroup.add(swordGroup);
 
       const allGraphNodes = [];
       const allBezierConnections = [];
@@ -127,9 +143,17 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         const state = brainMetrics.subjectStates.find(s => s.subjectId === subject.id) || { retentionPercent: 80, statusColor: '#06b6d4', syllabusTree: [] };
         const region = BRAIN_REGIONS[subjectIdx % BRAIN_REGIONS.length];
         
-        // Heart Demon Check: If retention < 50%, spawn dark red Heart Demon aura
-        const isCorrupted = state.retentionPercent < 50;
-        const themeColor = isCorrupted ? '#ef4444' : clusterColors[subjectIdx % clusterColors.length];
+        // 3-State Synapse Logic:
+        // 1. Dormant (never studied / completedLectures == 0): Dark Slate Grey #475569
+        // 2. Mastered (studied & retention >= 50%): Bright Cyan/Purple
+        // 3. Heart Demon (studied, then neglected, retention < 50%): Dark Red #ef4444
+        const hasBeenStudied = subject.completedLectures > 0;
+        const isCorrupted = hasBeenStudied && state.retentionPercent < 50;
+        const isDormant = !hasBeenStudied;
+
+        let themeColor = clusterColors[subjectIdx % clusterColors.length];
+        if (isCorrupted) themeColor = '#ef4444';
+        if (isDormant) themeColor = '#475569';
 
         const hubPos = new THREE.Vector3(
           region.basePos.x + (Math.random() - 0.5) * 30,
@@ -142,14 +166,20 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         const hubMat = new THREE.MeshBasicMaterial({ 
           color: new THREE.Color(themeColor), 
           transparent: true, 
-          opacity: isCorrupted ? 1.0 : 0.95 
+          opacity: isDormant ? 0.35 : isCorrupted ? 1.0 : 0.95 
         });
         const hubMesh = new THREE.Mesh(hubGeo, hubMat);
         hubMesh.position.copy(hubPos);
 
-        const hubTextSprite = getOrCreateTextSprite(isCorrupted ? `🖤 DEMON: ${subject.name}` : `🧠 ${subject.name}`, themeColor);
+        const hubLabelText = isDormant 
+          ? `⚪ ${subject.name} (Dormant)` 
+          : isCorrupted 
+            ? `🖤 DEMON: ${subject.name}` 
+            : `🧠 ${subject.name}`;
+
+        const hubTextSprite = getOrCreateTextSprite(hubLabelText, themeColor);
         hubTextSprite.position.set(0, hubRadius + 14, 0);
-        hubTextSprite.visible = true;
+        hubTextSprite.visible = true; // Subject hubs remain visible
         hubMesh.add(hubTextSprite);
 
         hubMesh.userData = {
@@ -159,6 +189,7 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           subject,
           state,
           isCorrupted,
+          isDormant,
           region: region.name,
           themeColor,
           connections: [],
@@ -177,14 +208,14 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
 
           const topicRadius = 8;
           const topicGeo = new THREE.SphereGeometry(topicRadius, 16, 16);
-          const topicMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: 0.85 });
+          const topicMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: isDormant ? 0.25 : 0.85 });
           const topicMesh = new THREE.Mesh(topicGeo, topicMat);
           topicMesh.position.copy(topicPos);
 
           const topicTextSprite = getOrCreateTextSprite(`⚡ ${topicObj.topicName}`, themeColor);
           topicTextSprite.scale.set(42, 10, 1);
           topicTextSprite.position.set(0, topicRadius + 9, 0);
-          topicTextSprite.visible = false;
+          topicTextSprite.visible = false; // Hidden by default, reveals ONLY on hover/tap!
           topicMesh.add(topicTextSprite);
 
           topicMesh.userData = {
@@ -207,21 +238,23 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           const curve1 = new THREE.CubicBezierCurve3(hubPos, controlPt1, controlPt1, topicPos);
           const pts1 = curve1.getPoints(20);
           const lineGeo1 = new THREE.BufferGeometry().setFromPoints(pts1);
-          const lineMat1 = new THREE.LineBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: 0.45 });
+          const lineMat1 = new THREE.LineBasicMaterial({ color: new THREE.Color(themeColor), transparent: true, opacity: isDormant ? 0.15 : 0.45 });
           const line1 = new THREE.Line(lineGeo1, lineMat1);
-          line1.userData = { nodeA: hubMesh, nodeB: topicMesh, defaultOpacity: 0.45 };
+          line1.userData = { nodeA: hubMesh, nodeB: topicMesh, defaultOpacity: isDormant ? 0.15 : 0.45 };
           brainGroup.add(line1);
           allBezierConnections.push(line1);
 
           hubMesh.userData.connections.push(topicMesh);
           topicMesh.userData.connections.push(hubMesh);
 
-          const pulseGeo1 = new THREE.SphereGeometry(2.2, 8, 8);
-          const pulseMat1 = new THREE.MeshBasicMaterial({ color: 0xffffff });
-          const pulse1 = new THREE.Mesh(pulseGeo1, pulseMat1);
-          brainGroup.add(pulse1);
+          if (!isDormant) {
+            const pulseGeo1 = new THREE.SphereGeometry(2.2, 8, 8);
+            const pulseMat1 = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const pulse1 = new THREE.Mesh(pulseGeo1, pulseMat1);
+            brainGroup.add(pulse1);
 
-          actionPotentialPulses.push({ mesh: pulse1, curve: curve1, progress: Math.random() });
+            actionPotentialPulses.push({ mesh: pulse1, curve: curve1, progress: Math.random() });
+          }
         });
       });
 
@@ -250,7 +283,7 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
             allGraphNodes.forEach(node => {
               if (connectedSet.has(node)) {
                 node.material.opacity = 1.0;
-                if (node.userData.sprite) node.userData.sprite.visible = true;
+                if (node.userData.sprite) node.userData.sprite.visible = true; // Reveal label on hover
                 node.scale.set(1.3, 1.3, 1.3);
               } else {
                 node.material.opacity = 0.12;
@@ -262,8 +295,8 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         } else if (activeHoverNode) {
           setActiveHoverNode(null);
           allGraphNodes.forEach(node => {
-            node.material.opacity = 0.9;
-            if (node.userData.sprite && node.userData.level > 1) node.userData.sprite.visible = false;
+            node.material.opacity = node.userData.isDormant ? 0.35 : 0.9;
+            if (node.userData.sprite && node.userData.level > 1) node.userData.sprite.visible = false; // Hide sub-topic labels
             node.scale.set(1, 1, 1);
           });
         }
@@ -297,11 +330,11 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         if (controls) controls.update();
         if (brainGroup) brainGroup.rotation.y += 0.0012;
 
-        // Orbit Divine Artifact
+        // Smooth Orbiting Semaphore Sword
         swordAngle += 0.015;
-        divineSword.position.x = Math.cos(swordAngle) * 210;
-        divineSword.position.z = Math.sin(swordAngle) * 210;
-        divineSword.rotation.y += 0.03;
+        swordGroup.position.x = Math.cos(swordAngle) * 210;
+        swordGroup.position.z = Math.sin(swordAngle) * 210;
+        swordGroup.rotation.y += 0.03;
 
         // Pulse Heart Demon Red Shaders
         heartDemonNodes.forEach(mesh => {
@@ -341,19 +374,19 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
     <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="cyber-panel p-6 rounded-2xl border border-cyan-500/40 bg-slate-950/80 cyber-hud-brackets flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="cyber-panel p-6 rounded-2xl border border-cyan-500/40 bg-slate-950/80 cyber-hud-brackets flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-orbitron">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-orbitron font-black text-white flex items-center gap-2">
+            <h2 className="text-xl font-black text-white flex items-center gap-2">
               <Brain className="w-6 h-6 text-cyan-400 animate-pulse" />
-              OBSIDIAN 3D BRAIN MATRIX & HEART DEMONS
+              OBSIDIAN 3D BRAIN MATRIX
             </h2>
-            <span className="text-[9px] font-orbitron font-extrabold px-2.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-              ORBITING 3D DIVINE ARTIFACTS
+            <span className="text-[9px] font-extrabold px-2.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">
+              🗡️ SEMAPHORE SWORD FORGED
             </span>
           </div>
           <p className="text-xs font-rajdhani text-slate-400 mt-1">
-            Dark red nodes indicate Heart Demons (&lt;50% retention). Tap "Purge Heart Demons" to launch a 25-min Pomodoro session!
+            Hover or tap any node to reveal sub-topic labels. Dormant nodes activate as you complete lectures!
           </p>
         </div>
 
@@ -361,13 +394,13 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenFeynman}
-            className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs font-orbitron flex items-center gap-1.5 shadow"
+            className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow"
           >
             <span>🎓 Feynman Disciple</span>
           </button>
           <button
             onClick={onOpenPurgeState}
-            className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs font-orbitron flex items-center gap-1.5 shadow"
+            className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow"
           >
             <Flame className="w-4 h-4 text-amber-300 animate-pulse" />
             <span>🖤 Purge Heart Demons</span>
@@ -378,11 +411,11 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
       {/* Main 3D Viewport */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <div className="lg:col-span-2 cyber-panel rounded-2xl border border-cyan-500/40 bg-slate-950/90 cyber-hud-brackets relative h-[480px] sm:h-[540px] overflow-hidden flex flex-col justify-between p-4">
+        <div className="lg:col-span-2 cyber-panel rounded-2xl border border-cyan-500/40 bg-slate-950/90 cyber-hud-brackets relative h-[480px] sm:h-[540px] overflow-hidden flex flex-col justify-between p-4 font-orbitron">
           
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            <span className="text-[10px] font-orbitron font-bold uppercase tracking-widest text-cyan-400 bg-slate-950/90 px-3 py-1 rounded border border-cyan-500/40 shadow">
-              Obsidian 3D Brain Matrix (Orbiting Semaphore Sword Active)
+            <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 bg-slate-950/90 px-3 py-1 rounded border border-cyan-500/40 shadow">
+              Obsidian 3D Physics Graph (Hover / Tap to Reveal Topic Labels)
             </span>
           </div>
 
@@ -390,25 +423,25 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
           {/* Legend */}
-          <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-wrap items-center justify-between gap-2 text-xs font-orbitron bg-slate-950/90 p-2.5 rounded-xl border border-slate-800">
+          <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-950/90 p-2.5 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-slate-600" />
+              <span className="text-slate-400">⚪ Dormant (Unstudied)</span>
+            </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-cyan-400 shadow-sm" />
-              <span className="text-slate-300">Mastered Synapses</span>
+              <span className="text-slate-300">🔵 Mastered Synapse</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
-              <span className="text-red-400 font-bold">Heart Demons (Purge Needed)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-amber-400" />
-              <span className="text-amber-300 font-bold">🗡️ Semaphore Sword (+15% Shield)</span>
+              <span className="text-red-400 font-bold">🔴 Heart Demon (&lt;50%)</span>
             </div>
           </div>
         </div>
 
         {/* Diagnostics Sidebar */}
         <div className="space-y-4 font-orbitron">
-          <div className="cyber-panel p-5 rounded-2xl border border-purple-500/40 bg-slate-950/80 cyber-hud-brackets space-y-3">
+          <div className="cyber-panel p-5 rounded-2xl border border-amber-500/40 bg-slate-950/80 cyber-hud-brackets space-y-3">
             <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2">
               <Shield className="w-4 h-4 text-amber-400" /> Forged Divine Artifacts
             </h3>

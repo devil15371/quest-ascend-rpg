@@ -13,31 +13,40 @@ export const CULTIVATION_REALMS = [
 ];
 
 /**
- * Default Reward Shop Items
+ * Default Reward Shop Items with unified properties
  */
 export const DEFAULT_SHOP_ITEMS = [
   {
     id: "item_rest_pass",
     title: "Rest Day Pass (Shield)",
+    name: "Rest Day Pass (Shield)",
     description: "Waives EXP penalty for 1 day if you take a rest from GATE study.",
     cost: 150,
+    price: 150,
     icon: "🛡️",
-    type: "PASS"
+    category: "Shield Pass",
+    type: "REST_PASS"
   },
   {
     id: "item_movie_night",
     title: "Anime / Movie Guild Pass",
+    name: "Anime / Movie Guild Pass",
     description: "Enjoy 2 hours of anime guilt-free after hitting study target.",
     cost: 100,
+    price: 100,
     icon: "🎬",
+    category: "Real Reward",
     type: "REWARD"
   },
   {
     id: "item_cheat_meal",
     title: "S-Rank Cheat Feast",
+    name: "S-Rank Cheat Feast",
     description: "Treat yourself to a favorite meal or snack.",
     cost: 120,
+    price: 120,
     icon: "🍕",
+    category: "Real Reward",
     type: "REWARD"
   }
 ];

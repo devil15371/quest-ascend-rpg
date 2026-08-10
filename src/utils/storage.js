@@ -1,9 +1,14 @@
-// LocalStorage Manager with Deep Fallback State Merge and Daily Audit checks
+// LocalStorage Manager with Deep Fallback State Merge, safeNum Sanitizer, and Daily Audit checks
 
 import { PRESET_CAMPAIGNS } from './presets';
 import { DEFAULT_SHOP_ITEMS } from './rpgEngine';
 
 const STORAGE_KEY = 'QUEST_ASCEND_USER_DATA_V1';
+
+export const safeNum = (val, defaultVal = 0) => {
+  const num = Number(val);
+  return Number.isFinite(num) ? num : defaultVal;
+};
 
 export const INITIAL_USER_STATE = {
   profile: {
@@ -76,27 +81,35 @@ export const INITIAL_USER_STATE = {
 };
 
 /**
- * Deep merge user state with initial defaults to prevent undefined property crashes
+ * Deep merge user state with initial defaults to prevent NaN & undefined property crashes
  */
 function deepMergeState(saved, defaults) {
   if (!saved || typeof saved !== 'object') return defaults;
+
+  const profile = saved.profile || {};
+  const stats = profile.stats || {};
 
   return {
     ...defaults,
     ...saved,
     profile: {
       ...defaults.profile,
-      ...(saved.profile || {}),
+      ...profile,
+      totalExp: safeNum(profile.totalExp, defaults.profile.totalExp),
+      gold: safeNum(profile.gold, defaults.profile.gold),
+      streak: safeNum(profile.streak, defaults.profile.streak),
       stats: {
-        ...defaults.profile.stats,
-        ...((saved.profile && saved.profile.stats) || {})
+        int: safeNum(stats.int, defaults.profile.stats.int),
+        wis: safeNum(stats.wis, defaults.profile.stats.wis),
+        dex: safeNum(stats.dex, defaults.profile.stats.dex),
+        vit: safeNum(stats.vit, defaults.profile.stats.vit)
       }
     },
     campaigns: Array.isArray(saved.campaigns) && saved.campaigns.length > 0 ? saved.campaigns : defaults.campaigns,
     dailyQuests: Array.isArray(saved.dailyQuests) ? saved.dailyQuests : defaults.dailyQuests,
     activityLogs: Array.isArray(saved.activityLogs) ? saved.activityLogs : defaults.activityLogs,
     inventory: Array.isArray(saved.inventory) ? saved.inventory : defaults.inventory,
-    shopItems: Array.isArray(saved.shopItems) ? saved.shopItems : defaults.shopItems
+    shopItems: Array.isArray(saved.shopItems) && saved.shopItems.length > 0 ? saved.shopItems : defaults.shopItems
   };
 }
 
@@ -120,7 +133,17 @@ export function loadUserData() {
 
 export function saveUserData(data) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (!data || !data.profile) return;
+    const sanitizedData = {
+      ...data,
+      profile: {
+        ...data.profile,
+        totalExp: safeNum(data.profile.totalExp, 150),
+        gold: safeNum(data.profile.gold, 120),
+        streak: safeNum(data.profile.streak, 1)
+      }
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedData));
   } catch (err) {
     console.error("Failed to save user data to LocalStorage:", err);
   }
@@ -134,8 +157,8 @@ function performDailyAudit(state) {
     if (lastActive !== today) {
       const isRestDay = state.profile.restDayActiveUntil && new Date(state.profile.restDayActiveUntil) >= new Date();
 
-      let updatedExp = state.profile.totalExp || 0;
-      let updatedStreak = state.profile.streak || 1;
+      let updatedExp = safeNum(state.profile.totalExp, 150);
+      let updatedStreak = safeNum(state.profile.streak, 1);
       const penaltyLogs = [];
 
       if (!isRestDay && Array.isArray(state.dailyQuests)) {
