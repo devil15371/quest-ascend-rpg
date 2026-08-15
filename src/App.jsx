@@ -208,6 +208,7 @@ export default function App() {
       <LevelUpOverlay 
         isOpen={isLevelUpOpen} 
         onClose={() => setIsLevelUpOpen(false)} 
+        userData={userData}
         level={levelInfo.level}
         realm={levelInfo.realm}
       />
