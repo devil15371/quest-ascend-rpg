@@ -1,9 +1,12 @@
-name: Build Android APK
+name: Build & Release Android APK
 
 on:
   push:
     branches:
       - main
+
+permissions:
+  contents: write
 
 jobs:
   build-apk:
@@ -41,8 +44,25 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
+      - name: Rename APK for Release
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk QuestAscend-RPG.apk
+
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: QuestAscend-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: QuestAscend-RPG.apk
+
+      - name: Publish Android APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main')
+        with:
+          tag_name: v1.0.0
+          name: "QuestAscend RPG v1.0.0 - Android Release"
+          body: "Official Android APK build for QuestAscend RPG GATE CS platform."
+          files: QuestAscend-RPG.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

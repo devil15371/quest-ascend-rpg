@@ -157,12 +157,13 @@ export default function Navbar({
                 </button>
 
                 <a
-                  href="https://raw.githubusercontent.com/devil15371/quest-ascend-rpg/main/public/QuestAscend.apk"
+                  href="https://github.com/devil15371/quest-ascend-rpg/releases"
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2 text-xs font-bold"
                 >
-                  <span>📲 Download Android APK (.apk)</span>
+                  <Download className="w-4 h-4 text-cyan-400" />
+                  <span>Download Android APK (.apk)</span>
                 </a>
 
                 <button
