@@ -1,4 +1,8 @@
-// Gemini AI Service: Xianxia Dao Ancestor Speech, Live GATE Quizzes, Feynman Evaluation, & Verified Dao Forge Resume
+// Gemini AI Service: Xianxia Dao Ancestor Speech, Live GATE Quizzes, Feynman Evaluation, Dao Forge Resume & Full App-Aware Chat
+
+import { calculateGlobalBrainMetrics } from './neuroEngine';
+import { calculateLevel } from './rpgEngine';
+import { safeNum } from './storage';
 
 const API_KEY_STORAGE_KEY = 'QUEST_ASCEND_GEMINI_API_KEY';
 
@@ -98,6 +102,124 @@ Speak in Xianxia Dao Ancestor tone (e.g. "Your comprehension of Peterson's Algor
   } catch (e) {
     console.error("Co-Pilot Gemini error:", e);
     return null;
+  }
+}
+
+/**
+ * Full App-Aware Chat with Gemini AI
+ * Ingests user stats, all subjects, brain retention states, quests, and logs to answer any question!
+ */
+export async function chatWithAppAwareAi(chatHistory = [], userData = {}, apiKey) {
+  const effectiveKey = apiKey || getStoredGeminiApiKey();
+
+  const totalExp = safeNum(userData?.profile?.totalExp, 150);
+  const levelInfo = calculateLevel(totalExp);
+  const userName = userData?.profile?.name || 'Scholar';
+  const gold = safeNum(userData?.profile?.gold, 120);
+  const streak = safeNum(userData?.profile?.streak, 1);
+
+  const activeCampaign = userData?.campaigns?.find(c => c.id === userData?.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
+  const subjects = activeCampaign?.subjects || [];
+  const brainMetrics = calculateGlobalBrainMetrics(subjects, userData?.activityLogs || []);
+
+  const subjectSummary = subjects.map(s => {
+    const state = brainMetrics.subjectStates.find(st => st.subjectId === s.id);
+    const ret = state ? state.retentionPercent : 100;
+    const status = (s.completedLectures || 0) === 0 
+      ? 'Dormant (Unstudied)' 
+      : ret < 50 
+        ? `🔴 HEART DEMON CORRUPTED (${ret}% Retention)` 
+        : `🔵 Mastered (${ret}% Retention)`;
+    return `- **${s.name}**: ${s.completedLectures || 0}/${s.totalLectures || 20} Lectures completed, ${s.completedQuestions || 0} PYQs solved. Status: ${status}`;
+  }).join('\n');
+
+  const dailyQuestsSummary = (userData?.dailyQuests || []).map(q => 
+    `- [${q.completed ? 'COMPLETED' : 'PENDING'}] ${q.title} (+${q.expReward} EXP)`
+  ).join('\n');
+
+  const recentLogs = (userData?.activityLogs || []).slice(0, 5).map(l => 
+    `- ${l.date}: ${l.description} (+${l.expGained} EXP)`
+  ).join('\n');
+
+  const systemContext = `You are the "Antigravity AI Quantum Mentor", an elite GATE CS Professor & Xianxia Dao Master built directly inside the QuestAscend RPG study platform.
+
+### CURRENT LIVE APP TELEMETRY & USER STATE:
+- **Scholar Name**: ${userName}
+- **Cultivation Realm**: ${levelInfo.realm.name} (Level ${levelInfo.level})
+- **EXP Progress**: ${levelInfo.expInLevel} / ${levelInfo.expNeeded} EXP (${levelInfo.progressPercent}%) [Total EXP: ${totalExp}]
+- **Gold Balance**: ${gold} Gold
+- **Daily Streak**: ${streak} Days
+- **Active Campaign**: ${activeCampaign?.title || 'GATE Computer Science'}
+
+### SYLLABUS & BRAIN MATRIX RETENTION BREAKDOWN:
+${subjectSummary || 'No subjects currently enrolled.'}
+
+### TODAY'S MORNING QUESTS:
+${dailyQuestsSummary || 'No daily quests active.'}
+
+### RECENT ACTIVITY LOGS:
+${recentLogs || 'No recent activity.'}
+
+### YOUR CAPABILITIES & INSTRUCTIONS:
+1. You have complete knowledge of the user's progress, weak topics, completed lectures, and Heart Demons (topics with <50% retention).
+2. Answer questions about:
+   - Study plans & recommendations based on their exact weak/decaying topics.
+   - Any GATE CS topic (OS, DBMS, Algorithms, TOC, Compiler Design, CN, Discrete Math, COA, Digital Logic, Engineering Mathematics).
+   - How the QuestAscend RPG mechanics work (Heavenly Tribulations, Ebbinghaus forgetting curve, 40Hz binaural beats, Sects, Gold Shop, Night Report).
+3. Be encouraging, concise, insightful, and blend high-level academic excellence with subtle Xianxia cultivation terminology. Use markdown formatting with bullet points and bold highlights.`;
+
+  if (!effectiveKey) {
+    // Intelligent Offline / Keyless Fallback
+    const lastUserMsg = chatHistory[chatHistory.length - 1]?.content?.toLowerCase() || '';
+    
+    if (lastUserMsg.includes('focus') || lastUserMsg.includes('study') || lastUserMsg.includes('next')) {
+      const weak = brainMetrics.subjectStates.find(s => s.retentionPercent < 60);
+      const targetSub = weak ? weak.subjectName : subjects[0]?.name || 'Operating Systems';
+      return `### 🎯 Targeted Study Recommendation\n\nBased on your live Brain Matrix telemetry:\n\n- **Primary Focus:** **${targetSub}** (Recommended: Complete 1 Lecture & 10 PYQs today).\n- **Daily Goal:** Complete your pending Morning Quests to protect your ${streak}-day streak and avoid night audit penalties.\n\n*(💡 Pro-Tip: Add your Gemini API key in settings for real-time live deep explanations on any GATE topic!)*`;
+    }
+
+    if (lastUserMsg.includes('demon') || lastUserMsg.includes('purge') || lastUserMsg.includes('heart')) {
+      const demonSubjects = brainMetrics.subjectStates.filter(s => s.retentionPercent < 50);
+      if (demonSubjects.length === 0) {
+        return `### ✨ Pure Dao Mind!\n\nYou currently have **0 Heart Demons** active. All your studied synapses have healthy Ebbinghaus retention (≥50%). Keep reviewing consistently to maintain neural stability!`;
+      }
+      return `### 🖤 Active Heart Demons Detected\n\nYour memory retention has decayed below 50% on:\n${demonSubjects.map(s => `- **${s.subjectName}** (${s.retentionPercent}% Retention)`).join('\n')}\n\n**Action Plan:** Open the **3D Brain Matrix** tab and click **Purge Heart Demons** to complete quick recall flash-trials and restore memory stability!`;
+    }
+
+    return `Greetings, **${userName}**! I am your AI Quantum Mentor.\n\nCurrently, you are at **Level ${levelInfo.level} (${levelInfo.realm.name})** with **${gold} Gold** and **${streak}-day streak**.\n\nYou can ask me:\n- *"What should I study next?"*\n- *"How do I purge my Heart Demons?"*\n- *"Explain Dijkstra's Algorithm or Peterson's Algorithm"*\n\n*(To unlock unbounded real-time AI reasoning, you can add your free Google Gemini API key!)*`;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
+
+  // Format messages into Gemini format
+  const formattedContents = chatHistory.map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemContext }]
+        },
+        contents: formattedContents
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API returned ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!reply) throw new Error("Empty response from AI");
+    return reply;
+  } catch (err) {
+    console.error("AI Chat error:", err);
+    return `Greetings, **${userName}**! I am analyzing your full app telemetry:\n\n- You are currently at **Level ${levelInfo.level} (${levelInfo.realm.name})**.\n- You have **${subjects.length} subjects** in your active curriculum.\n\n*Note: Encountered connection issue with Gemini API (${err.message}). Please verify your Gemini API key in settings.*`;
   }
 }
 

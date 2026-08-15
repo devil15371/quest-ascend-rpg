@@ -19,6 +19,7 @@ import FeynmanDiscipleModal from './components/FeynmanDiscipleModal';
 import PurgeStateModal from './components/PurgeStateModal';
 import SectGuildModal from './components/SectGuildModal';
 import AscensionResumeModal from './components/AscensionResumeModal';
+import AiMentorChatModal from './components/AiMentorChatModal';
 
 import { loadUserData, saveUserData } from './utils/storage';
 import { calculateLevel } from './utils/rpgEngine';
@@ -41,6 +42,7 @@ export default function App() {
   const [isPurgeStateOpen, setIsPurgeStateOpen] = useState(false);
   const [isSectGuildOpen, setIsSectGuildOpen] = useState(false);
   const [isAscensionResumeOpen, setIsAscensionResumeOpen] = useState(false);
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
 
   const levelInfo = calculateLevel(userData?.profile?.totalExp || 0);
 
@@ -77,11 +79,10 @@ export default function App() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6 relative z-10">
         
-        {/* Antigravity Quantum Co-Pilot Speech Banner */}
+        {/* Antigravity Quantum AI Greeting Speech Banner (Interactive full-app chat) */}
         <GuildMasterModal 
           userData={userData} 
-          setUserData={setUserData} 
-          onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+          onOpenChat={() => setIsAiChatOpen(true)}
         />
 
         {/* Character RPG Hero Card */}
@@ -125,7 +126,7 @@ export default function App() {
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Daily Morning Quests</span>
+            <span>Morning Quests</span>
           </button>
 
           <button
@@ -138,28 +139,28 @@ export default function App() {
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Reward Shop & Rest Days</span>
+            <span>Reward Shop</span>
           </button>
 
           <button
             onMouseEnter={() => audio.playHoverSound()}
-            onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('history'); }}
+            onClick={() => { audio.playClick(); triggerHapticFeedback('light'); setActiveTab('logs'); }}
             className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition whitespace-nowrap uppercase tracking-wider ${
-              activeTab === 'history'
+              activeTab === 'logs'
                 ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 font-black shadow-lg shadow-cyan-500/25'
                 : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
             }`}
           >
             <History className="w-4 h-4" />
-            <span>Activity Log Matrix</span>
+            <span>Activity Logs</span>
           </button>
         </div>
 
-        {/* Tab Contents */}
-        <div className="transition-all duration-300">
+        {/* Tab Content Display */}
+        <div className="space-y-6">
           {activeTab === 'subjects' && (
             <SubjectTracker 
-              userData={userData}
+              userData={userData} 
               setUserData={setUserData}
               onOpenAddSubject={() => setIsAddSubjectOpen(true)}
             />
@@ -175,7 +176,7 @@ export default function App() {
 
           {activeTab === 'quests' && (
             <DailyQuestBoard 
-              userData={userData}
+              userData={userData} 
               setUserData={setUserData}
               onOpenAddQuest={() => setIsAddQuestOpen(true)}
             />
@@ -183,46 +184,43 @@ export default function App() {
 
           {activeTab === 'shop' && (
             <RewardShop 
-              userData={userData}
-              setUserData={setUserData}
+              userData={userData} 
+              setUserData={setUserData} 
             />
           )}
 
-          {activeTab === 'history' && (
+          {activeTab === 'logs' && (
             <HeatmapView 
-              userData={userData}
-              setUserData={setUserData}
+              userData={userData} 
             />
           )}
         </div>
 
       </main>
 
-      {/* Mobile Floating Bottom Bar */}
-      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* Mobile Bottom Navigation Dock */}
+      <MobileBottomNav 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+      />
 
-      {/* Footer */}
-      <footer className="text-center text-xs font-rajdhani text-slate-500 py-6 border-t border-slate-900 mt-auto hidden md:block relative z-10">
-        <p>QuestAscend Xianxia Solo Leveling Engine • Powered by Gemini 2.5 Flash & 40Hz Binaural Synthesizer</p>
-      </footer>
-
-      {/* Modals */}
+      {/* Overlays & Modals */}
       <LevelUpOverlay 
-        isOpen={isLevelUpOpen}
-        onClose={() => setIsLevelUpOpen(false)}
-        userData={userData}
+        isOpen={isLevelUpOpen} 
+        onClose={() => setIsLevelUpOpen(false)} 
+        level={levelInfo.level}
+        realm={levelInfo.realm}
       />
 
       <AddSubjectModal 
-        isOpen={isAddSubjectOpen}
-        onClose={() => setIsAddSubjectOpen(false)}
-        userData={userData}
+        isOpen={isAddSubjectOpen} 
+        onClose={() => setIsAddSubjectOpen(false)} 
         setUserData={setUserData}
       />
 
       <AddQuestModal 
-        isOpen={isAddQuestOpen}
-        onClose={() => setIsAddQuestOpen(false)}
+        isOpen={isAddQuestOpen} 
+        onClose={() => setIsAddQuestOpen(false)} 
         setUserData={setUserData}
       />
 
@@ -271,6 +269,13 @@ export default function App() {
         isOpen={isAscensionResumeOpen}
         onClose={() => setIsAscensionResumeOpen(false)}
         userData={userData}
+      />
+
+      <AiMentorChatModal
+        isOpen={isAiChatOpen}
+        onClose={() => setIsAiChatOpen(false)}
+        userData={userData}
+        setUserData={setUserData}
       />
 
     </div>
