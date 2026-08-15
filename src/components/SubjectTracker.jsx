@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Plus, CheckCircle2, RotateCcw, HelpCircle, Sparkles, FolderPlus, Trash2, Cpu, Sliders, Zap } from 'lucide-react';
 import { audio } from '../utils/audioEngine';
-import { EXP_TABLE, isEarlyBirdTime } from '../utils/rpgEngine';
+import { EXP_TABLE, isCultivationBonusTime, calculateStatResonances } from '../utils/rpgEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 import EditSubjectModal from './EditSubjectModal';
 
@@ -9,54 +9,46 @@ export default function SubjectTracker({ userData, setUserData, onOpenAddSubject
   const [editingSubject, setEditingSubject] = useState(null);
 
   const activeCampaign = userData?.campaigns?.find(c => c.id === userData?.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
+  const heroStats = userData?.profile?.stats || { int: 20, wis: 20, dex: 20, vit: 20 };
+  const statResonances = calculateStatResonances(heroStats);
+  const cultivationWindow = userData?.profile?.cultivationWindow || 'EARLY_BIRD';
+  const isBonusActive = isCultivationBonusTime(cultivationWindow);
 
   const handleIncrement = (subjectId, type, count = 1) => {
     audio.playExpGain();
     triggerHapticFeedback('medium');
 
-    const earlyBirdBonus = typeof EXP_TABLE?.EARLY_BIRD_BONUS === 'number' ? EXP_TABLE.EARLY_BIRD_BONUS : 0.25;
-    const multiplier = isEarlyBirdTime() ? (1 + earlyBirdBonus) : 1;
+    const bonusMultiplier = isBonusActive ? (1 + (EXP_TABLE?.CULTIVATION_TIME_BONUS || 0.25)) : 1;
     let baseExp = 0;
     let baseGold = 0;
     let statKey = '';
     let statVal = 0;
     let logDesc = '';
 
-    const getTableValues = (entry, defaultExp, defaultGold, defaultStat) => {
-      if (typeof entry === 'number') return { exp: entry, gold: Math.round(entry / 2), stat: defaultStat, val: 1 };
-      return {
-        exp: entry?.exp || defaultExp,
-        gold: entry?.gold || defaultGold,
-        stat: entry?.stat || defaultStat,
-        val: entry?.val || 1
-      };
-    };
-
     if (type === 'lecture') {
-      const vals = getTableValues(EXP_TABLE?.LECTURE, 40, 20, 'wis');
-      baseExp = vals.exp * count;
-      baseGold = vals.gold * count;
-      statKey = vals.stat;
-      statVal = vals.val * count;
+      const wisMultiplier = 1 + (statResonances.lectureExpBonusPercent / 100);
+      baseExp = (EXP_TABLE.LECTURE.exp * count) * wisMultiplier;
+      baseGold = EXP_TABLE.LECTURE.gold * count;
+      statKey = EXP_TABLE.LECTURE.stat;
+      statVal = EXP_TABLE.LECTURE.val * count;
       logDesc = `Completed ${count} Lecture(s)`;
     } else if (type === 'revision') {
-      const vals = getTableValues(EXP_TABLE?.REVISION, 30, 15, 'int');
-      baseExp = vals.exp * count;
-      baseGold = vals.gold * count;
-      statKey = vals.stat;
-      statVal = vals.val * count;
+      baseExp = EXP_TABLE.REVISION.exp * count;
+      baseGold = EXP_TABLE.REVISION.gold * count;
+      statKey = EXP_TABLE.REVISION.stat;
+      statVal = EXP_TABLE.REVISION.val * count;
       logDesc = `Completed ${count} Revision Session(s)`;
     } else if (type === 'question') {
-      const vals = getTableValues(EXP_TABLE?.QUESTION, 3, 1, 'dex');
-      baseExp = vals.exp * count;
-      baseGold = vals.gold * count;
-      statKey = vals.stat;
-      statVal = vals.val * count;
+      const dexMultiplier = 1 + (statResonances.pyqGoldBonusPercent / 100);
+      baseExp = EXP_TABLE.QUESTION.exp * count;
+      baseGold = (EXP_TABLE.QUESTION.gold * count) * dexMultiplier;
+      statKey = EXP_TABLE.QUESTION.stat;
+      statVal = EXP_TABLE.QUESTION.val * count;
       logDesc = `Solved ${count} Practice Question(s)`;
     }
 
-    const totalExpGain = Math.round(baseExp * multiplier);
-    const totalGoldGain = baseGold;
+    const totalExpGain = Math.round(baseExp * bonusMultiplier);
+    const totalGoldGain = Math.round(baseGold);
 
     setUserData(prev => {
       let targetSubj = null;

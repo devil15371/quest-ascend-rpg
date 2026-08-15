@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Coins, Shield, Gamepad2, Pizza, Sparkles, Plus, Check, PackageCheck } from 'lucide-react';
+import { ShoppingBag, Coins, Shield, Gamepad2, Pizza, Sparkles, Plus, Check, PackageCheck, Sparkle, Crown, Flame } from 'lucide-react';
 import { safeNum } from '../utils/safeMath';
+import { DEFAULT_SHOP_ITEMS } from '../utils/rpgEngine';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
@@ -11,12 +12,17 @@ export default function RewardShop({ userData, setUserData }) {
 
   const currentGold = safeNum(userData?.profile?.gold, 120);
 
+  const availableItems = [
+    ...DEFAULT_SHOP_ITEMS,
+    ...(userData.shopItems || []).filter(item => !DEFAULT_SHOP_ITEMS.some(d => d.id === item.id))
+  ];
+
   const buyItem = (item) => {
     const itemCost = safeNum(item.cost || item.price, 100);
     const itemName = item.title || item.name || 'Reward Item';
 
     if (currentGold < itemCost) {
-      alert("Not enough Gold Coins! Complete lectures and daily quests to earn more.");
+      alert("Not enough Gold! Complete more lectures and practice questions to earn Gold.");
       return;
     }
 
@@ -24,22 +30,22 @@ export default function RewardShop({ userData, setUserData }) {
     triggerHapticFeedback('heavy');
 
     setUserData(prev => {
-      const newGold = Math.max(0, currentGold - itemCost);
-      const existingInvIndex = (prev.inventory || []).findIndex(i => i.id === item.id || i.type === item.type);
-      let updatedInv = [...(prev.inventory || [])];
+      const newGold = Math.max(0, safeNum(prev.profile?.gold, 120) - itemCost);
+      const existingInv = prev.inventory || [];
+      const existingInvIndex = existingInv.findIndex(i => i.id === item.id);
 
-      if (item.type === 'REST_PASS') {
-        if (existingInvIndex >= 0) {
-          updatedInv[existingInvIndex].count += 1;
-        } else {
-          updatedInv.push({ id: item.id || 'inv_' + Date.now(), name: itemName, count: 1, type: item.type });
-        }
+      let updatedInv = [...existingInv];
+
+      if (existingInvIndex >= 0) {
+        updatedInv[existingInvIndex].count += 1;
       } else {
-        if (existingInvIndex >= 0) {
-          updatedInv[existingInvIndex].count += 1;
-        } else {
-          updatedInv.push({ id: item.id || 'inv_' + Date.now(), name: itemName, count: 1, type: item.type });
-        }
+        updatedInv.push({ 
+          id: item.id || 'inv_' + Date.now(), 
+          name: itemName, 
+          count: 1, 
+          type: item.type || 'REWARD',
+          category: item.category || 'Reward'
+        });
       }
 
       return {
@@ -90,6 +96,28 @@ export default function RewardShop({ userData, setUserData }) {
           ]
         };
       });
+      alert("🛡️ Rest Day Shield activated for 24 hours! Your streak and EXP are protected.");
+    } else if (invItem.type === 'COSMETIC' || invItem.category?.includes('Cosmetic') || invItem.category?.includes('Skin')) {
+      // Toggle or Equip Cosmetic
+      setUserData(prev => {
+        const isTitle = invItem.category?.includes('Title') || invItem.id.startsWith('title_');
+        const isAura = invItem.category?.includes('Aura') || invItem.id.startsWith('aura_');
+
+        let updatedProfile = { ...prev.profile };
+        if (isTitle) {
+          updatedProfile.equippedTitle = updatedProfile.equippedTitle === invItem.name ? '' : invItem.name;
+        } else if (isAura) {
+          updatedProfile.equippedAura = updatedProfile.equippedAura === invItem.name ? '' : invItem.name;
+        } else {
+          updatedProfile.equippedSkin = updatedProfile.equippedSkin === invItem.name ? '' : invItem.name;
+        }
+
+        return {
+          ...prev,
+          profile: updatedProfile
+        };
+      });
+      alert(`✨ Equipped Cosmetic: ${invItem.name}!`);
     } else {
       setUserData(prev => {
         const updatedInv = (prev.inventory || []).map(item => 
@@ -120,22 +148,24 @@ export default function RewardShop({ userData, setUserData }) {
     e.preventDefault();
     if (!customTitle.trim()) return;
 
-    const price = parseInt(customPrice) || 150;
-    const newItem = {
+    audio.playClick();
+    triggerHapticFeedback('light');
+
+    const newReward = {
       id: 'custom_reward_' + Date.now(),
       title: customTitle.trim(),
       name: customTitle.trim(),
+      description: "Custom self-determined real-world study milestone reward.",
+      cost: Math.max(10, safeNum(customPrice, 100)),
+      price: Math.max(10, safeNum(customPrice, 100)),
+      icon: "🎁",
       category: "Custom Reward",
-      cost: price,
-      price: price,
-      icon: "Sparkles",
-      description: "Custom user-defined real-life reward.",
-      type: "REAL_REWARD"
+      type: "REWARD"
     };
 
     setUserData(prev => ({
       ...prev,
-      shopItems: [...(prev.shopItems || []), newItem]
+      shopItems: [...(prev.shopItems || []), newReward]
     }));
 
     setCustomTitle('');
@@ -155,7 +185,7 @@ export default function RewardShop({ userData, setUserData }) {
             </h2>
           </div>
           <p className="text-xs font-rajdhani text-slate-400 mt-1">
-            Exchange your earned Gold Coins for Rest Day Passes, custom titles, or real-life guilty pleasures!
+            Exchange your earned Gold Coins for Rest Day Passes, cosmetic particle auras, or real-life guilty pleasures!
           </p>
         </div>
 
@@ -222,37 +252,50 @@ export default function RewardShop({ userData, setUserData }) {
       <div className="cyber-panel p-5 rounded-2xl border border-cyan-500/30 bg-slate-950/80 cyber-hud-brackets font-orbitron">
         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2 mb-3">
           <PackageCheck className="w-4 h-4 text-emerald-400" />
-          Hero Inventory & Unused Passes
+          Hero Inventory & Unused Passes / Cosmetics
         </h3>
 
         {(userData.inventory || []).length === 0 ? (
           <p className="text-xs font-rajdhani text-slate-500">Your inventory is empty. Purchase items below!</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {(userData.inventory || []).map(item => (
-              <div 
-                key={item.id}
-                className="p-3 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between gap-2"
-              >
-                <div>
-                  <span className="text-xs font-bold text-white block">{item.name || item.title}</span>
-                  <span className="text-[11px] font-rajdhani text-emerald-400 font-semibold">Qty: {item.count}</span>
-                </div>
-                <button
-                  onClick={() => useInventoryItem(item)}
-                  className="px-3 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 font-bold text-xs active:scale-95"
+            {(userData.inventory || []).map(item => {
+              const isCosmetic = item.type === 'COSMETIC' || item.category?.includes('Cosmetic');
+              const isEquipped = (userData.profile?.equippedTitle === item.name) || (userData.profile?.equippedAura === item.name);
+
+              return (
+                <div 
+                  key={item.id}
+                  className="p-3 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between gap-2"
                 >
-                  Use Pass
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <span className="text-xs font-bold text-white block">{item.name || item.title}</span>
+                    <span className="text-[11px] font-rajdhani text-emerald-400 font-semibold">
+                      {isCosmetic ? (isEquipped ? '✨ Equipped' : 'Owned') : `Qty: ${item.count}`}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => useInventoryItem(item)}
+                    className={`px-3 py-1 rounded-lg font-bold text-xs active:scale-95 transition ${
+                      isCosmetic
+                        ? isEquipped
+                          ? 'bg-amber-950 border border-amber-500 text-amber-300'
+                          : 'bg-cyan-950 hover:bg-cyan-900 border border-cyan-500 text-cyan-300'
+                        : 'bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300'
+                    }`}
+                  >
+                    {isCosmetic ? (isEquipped ? 'Equipped' : 'Equip') : 'Use Pass'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Shop Catalog Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-orbitron">
-        {(userData.shopItems || []).map(item => {
+        {availableItems.map(item => {
           const itemName = item.title || item.name || "Reward Item";
           const itemCost = safeNum(item.cost || item.price, 100);
           const itemCategory = item.category || "Shield Pass";
@@ -261,7 +304,7 @@ export default function RewardShop({ userData, setUserData }) {
           return (
             <div
               key={item.id || item.title}
-              className="cyber-panel-interactive rounded-2xl p-5 border border-slate-800 flex flex-col justify-between cyber-hud-brackets bg-slate-950/80"
+              className="cyber-panel-interactive rounded-2xl p-5 border border-slate-800 flex flex-col justify-between cyber-hud-brackets bg-slate-950/80 hover:border-amber-500/40 transition"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -274,7 +317,10 @@ export default function RewardShop({ userData, setUserData }) {
                   </div>
                 </div>
 
-                <h4 className="text-sm font-bold text-white mb-1">{itemName}</h4>
+                <h4 className="text-sm font-bold text-white mb-1 flex items-center gap-1.5">
+                  <span>{item.icon || '🎁'}</span>
+                  <span>{itemName}</span>
+                </h4>
                 <p className="text-xs font-rajdhani text-slate-400 mb-4">{item.description}</p>
               </div>
 

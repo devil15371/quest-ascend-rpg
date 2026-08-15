@@ -1,4 +1,4 @@
-// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Scaling, Night Lock, and Guild Master AI Quotes
+// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Resonance Perks, Cultivation Windows, and Guild Master AI Quotes
 
 import { safeNum } from './safeMath';
 
@@ -15,7 +15,7 @@ export const CULTIVATION_REALMS = [
 ];
 
 /**
- * Default Reward Shop Items with unified properties
+ * Default Reward Shop Items with unified properties and late-game cosmetic gold sinks
  */
 export const DEFAULT_SHOP_ITEMS = [
   {
@@ -50,20 +50,102 @@ export const DEFAULT_SHOP_ITEMS = [
     icon: "🍕",
     category: "Real Reward",
     type: "REWARD"
+  },
+  {
+    id: "aura_cosmic_qi",
+    title: "Cosmic Qi Hologram Aura",
+    name: "Cosmic Qi Hologram Aura",
+    description: "Equips a glowing cyan & purple ethereal Qi particle aura around your avatar.",
+    cost: 500,
+    price: 500,
+    icon: "🌌",
+    category: "Aura Cosmetic",
+    type: "COSMETIC"
+  },
+  {
+    id: "title_dao_master",
+    title: "Title: Cyber Dao Master",
+    name: "Title: Cyber Dao Master",
+    description: "Unlocks the gilded title badge displayed on your character profile.",
+    cost: 800,
+    price: 800,
+    icon: "⚡",
+    category: "Title Cosmetic",
+    type: "COSMETIC"
+  },
+  {
+    id: "skin_semaphore_blade",
+    title: "Skin: Golden Semaphore Blade",
+    name: "Skin: Golden Semaphore Blade",
+    description: "Forges a golden radiant blade in the 3D synaptic matrix visualizer.",
+    cost: 1200,
+    price: 1200,
+    icon: "⚔️",
+    category: "Artifact Skin",
+    type: "COSMETIC"
+  },
+  {
+    id: "aura_celestial_halo",
+    title: "Aura: Celestial Sovereign Halo",
+    name: "Aura: Celestial Sovereign Halo",
+    description: "The ultimate prestige cosmetic. Crowns your avatar with a rotating celestial halo.",
+    cost: 2500,
+    price: 2500,
+    icon: "👑",
+    category: "Aura Cosmetic",
+    type: "COSMETIC"
   }
 ];
 
+/**
+ * Standardized Unified EXP Table
+ */
 export const EXP_TABLE = {
-  LECTURE: { exp: 40, gold: 20, stat: 'wis', val: 2 },
-  QUESTION: { exp: 3, gold: 1, stat: 'dex', val: 1 },
-  REVISION: { exp: 30, gold: 15, stat: 'int', val: 2 },
+  LECTURE: { exp: 50, gold: 20, stat: 'wis', val: 2 },
+  QUESTION: { exp: 10, gold: 1, stat: 'dex', val: 1 }, // 10 PYQs = 100 EXP, 10 Gold, 10 DEX
+  REVISION: { exp: 35, gold: 15, stat: 'int', val: 2 },
   DAILY_QUEST: { exp: 80, gold: 40 },
-  EARLY_BIRD_BONUS: 0.25
+  TRIBULATION: { exp: 250, gold: 100 },
+  PURGE_SESSION: { exp: 150, gold: 50, stat: 'vit', val: 5 },
+  FEYNMAN: { exp: 120, gold: 40, stat: 'wis', val: 5 },
+  CULTIVATION_TIME_BONUS: 0.25
 };
 
-export function isEarlyBirdTime() {
+/**
+ * Check Cultivation Bonus Time Window (Early Bird vs Night Owl)
+ */
+export function isCultivationBonusTime(cultivationWindow = 'EARLY_BIRD') {
   const hour = new Date().getHours();
-  return hour >= 5 && hour < 9;
+  if (cultivationWindow === 'NIGHT_OWL') {
+    return hour >= 23 || hour < 2; // 11:00 PM to 2:00 AM
+  }
+  // Default: EARLY_BIRD
+  return hour >= 5 && hour < 9; // 5:00 AM to 9:00 AM
+}
+
+export function isEarlyBirdTime(cultivationWindow = 'EARLY_BIRD') {
+  return isCultivationBonusTime(cultivationWindow);
+}
+
+/**
+ * Calculate Gameplay Stat Resonance Perks from Hero Stats
+ */
+export function calculateStatResonances(stats = {}) {
+  const intVal = safeNum(stats.int, 20);
+  const wisVal = safeNum(stats.wis, 20);
+  const dexVal = safeNum(stats.dex, 20);
+  const vitVal = safeNum(stats.vit, 20);
+
+  return {
+    // INT slows Ebbinghaus forgetting curve decay speed by up to 25%
+    memoryDecayResistancePercent: Math.min(25, Math.floor(intVal / 40)),
+    // WIS grants +1% bonus Lecture EXP per 40 WIS (up to +20%)
+    lectureExpBonusPercent: Math.min(20, Math.floor(wisVal / 40)),
+    // DEX grants +1% bonus Gold from PYQ practice per 40 DEX (up to +25%)
+    pyqGoldBonusPercent: Math.min(25, Math.floor(dexVal / 40)),
+    // VIT grants +1% bonus Focus stamina EXP in Purge sessions per 40 VIT (up to +25%)
+    purgeExpBonusPercent: Math.min(25, Math.floor(vitVal / 40))
+  };
 }
 
 /**
@@ -77,7 +159,7 @@ export function isNightReportUnlocked(devOverride = false) {
 
 /**
  * Exponential EXP required for Level L:
- * EXP(L) = floor(100 * L^1.65)
+ * EXP(L) = floor(100 * (L - 1)^1.65)
  */
 export function getExpForLevel(level) {
   if (!level || level <= 1) return 0;

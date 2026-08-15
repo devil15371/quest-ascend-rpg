@@ -1,5 +1,7 @@
 // Neuroscience Neural Engine: Ebbinghaus Forgetting Curve & Multi-Tier Subject/Topic Hierarchy
 
+import { safeNum } from './safeMath';
+
 /**
  * Anatomical Brain Lobe Regions for 3D Graph Node Placement
  */
@@ -69,34 +71,60 @@ export const SUBJECT_SYLLABUS_TREES = {
     },
     {
       topicName: "Normalization & Functional Dependencies",
-      subTopics: ["1NF, 2NF, 3NF & BCNF", "Lossless Join Decomposition", "Dependency Preservation", "Canonical Cover"]
+      subTopics: ["1NF, 2NF, 3NF, BCNF", "Lossless Join Decomposition", "Dependency Preserving", "Canonical Cover"]
     },
     {
       topicName: "Transactions & Concurrency",
-      subTopics: ["ACID Properties", "Two-Phase Locking (2PL)", "Conflict Serializability", "Strict 2PL & Deadlocks"]
+      subTopics: ["ACID Properties", "Conflict & View Serializability", "Two-Phase Locking (2PL)", "Timestamp Ordering Protocol"]
+    }
+  ],
+  "Theory of Computation": [
+    {
+      topicName: "Finite Automata",
+      subTopics: ["DFA & NFA Minimization", "Regular Expressions", "Pumping Lemma for Regular", "Myhill-Nerode Theorem"]
+    },
+    {
+      topicName: "Context-Free Grammars",
+      subTopics: ["Pushdown Automata (PDA)", "Chomsky Normal Form", "Ambiguity in CFG", "Pumping Lemma for CFL"]
+    },
+    {
+      topicName: "Turing Machines & Decidability",
+      subTopics: ["Halting Problem", "Rice's Theorem", "Undecidability Proofs", "Post Correspondence Problem (PCP)"]
+    }
+  ],
+  "Computer Networks": [
+    {
+      topicName: "Data Link Layer",
+      subTopics: ["Sliding Window Protocols (Go-Back-N, SR)", "CRC & Framing", "CSMA/CD & Ethernet", "Efficiency Calculations"]
+    },
+    {
+      topicName: "Network Layer & Routing",
+      subTopics: ["IPv4 & IPv6 Subnetting / CIDR", "Dijkstra OSPF Routing", "Distance Vector (Bellman-Ford)", "NAT & Fragmentation"]
+    },
+    {
+      topicName: "Transport Layer",
+      subTopics: ["TCP Congestion Control & AIMD", "TCP 3-Way Handshake", "Flow Control & Window Size", "UDP Checksum"]
     }
   ]
 };
 
-/**
- * Default Topic Fallback if subject name is custom
- */
-const DEFAULT_TOPIC_TREE = [
+export const DEFAULT_TOPIC_TREE = [
   {
-    topicName: "Core Syllabus Modules",
-    subTopics: ["Theory & Concepts", "Formula Derivations", "Standard Numerical Problems"]
+    topicName: "Core Concepts & Fundamentals",
+    subTopics: ["Definitions & Axioms", "Standard Paradigms", "Edge Cases & Exceptions", "Solved Standard Examples"]
   },
   {
-    topicName: "Practice & Applications",
-    subTopics: ["Medium Numerical Drills", "Advanced Problem Solving", "Mock Test Questions"]
+    topicName: "Advanced Analytical Principles",
+    subTopics: ["Time & Space Complexity", "Optimization Theorems", "Mathematical Proofs", "GATE PYQ Traps"]
   }
 ];
 
 /**
  * Calculate Memory Retention R(t) using Ebbinghaus Forgetting Curve formula:
  * R(t) = e^(-t / S)
+ * INT stat boosts memory stability S by up to +25%
  */
-export function calculateSubjectNeuroState(subject, activityLogs = []) {
+export function calculateSubjectNeuroState(subject, activityLogs = [], heroStats = {}) {
   const subjectLogs = activityLogs.filter(log => log.description.includes(subject.name));
   const lastTimestamp = subjectLogs.length > 0 ? subjectLogs[0].timestamp : Date.now() - (86400000 * 2.5);
 
@@ -106,8 +134,12 @@ export function calculateSubjectNeuroState(subject, activityLogs = []) {
   const questions = subject.completedQuestions || 0;
   const lectures = subject.completedLectures || 0;
 
+  // Hero INT provides cognitive resilience against forgetting: up to +25% stability
+  const intStat = safeNum(heroStats.int, 20);
+  const intStabilityMultiplier = 1 + Math.min(0.25, Math.max(0, (intStat - 20) / 160));
+
   // Stability S (days)
-  let stabilityDays = 1.5 + (lectures * 0.5);
+  let stabilityDays = (1.5 + (lectures * 0.5)) * intStabilityMultiplier;
   stabilityDays *= Math.pow(2.2, revisions);
   stabilityDays += (questions * 0.08);
 
@@ -150,7 +182,7 @@ export function calculateSubjectNeuroState(subject, activityLogs = []) {
 /**
  * Calculate Global Brain Metrics across all subjects in campaign
  */
-export function calculateGlobalBrainMetrics(subjects = [], activityLogs = []) {
+export function calculateGlobalBrainMetrics(subjects = [], activityLogs = [], heroStats = {}) {
   if (subjects.length === 0) {
     return {
       averageRetention: 100,
@@ -161,7 +193,7 @@ export function calculateGlobalBrainMetrics(subjects = [], activityLogs = []) {
     };
   }
 
-  const subjectStates = subjects.map(s => calculateSubjectNeuroState(s, activityLogs));
+  const subjectStates = subjects.map(s => calculateSubjectNeuroState(s, activityLogs, heroStats));
   const totalRetention = subjectStates.reduce((acc, curr) => acc + curr.retentionPercent, 0);
   const totalSynapses = subjectStates.reduce((acc, curr) => acc + curr.synapsesCount, 0);
   const totalHalfLife = subjectStates.reduce((acc, curr) => acc + curr.halfLifeDays, 0);
