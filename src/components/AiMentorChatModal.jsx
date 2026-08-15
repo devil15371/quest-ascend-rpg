@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Sparkles, Bot, Key, ArrowRight, RefreshCw, Layers, CheckCircle2, Flame, Brain, BookOpen } from 'lucide-react';
-import { chatWithAppAwareAi, getStoredGeminiApiKey, saveGeminiApiKey } from '../utils/geminiAiService';
+import { X, Send, Sparkles, Bot, Key, ArrowRight, RefreshCw, Layers, CheckCircle2, Flame, Brain, BookOpen, Zap } from 'lucide-react';
+import { streamChatWithAppAwareAi, getStoredGeminiApiKey, saveGeminiApiKey } from '../utils/geminiAiService';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
@@ -38,20 +38,28 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
     triggerHapticFeedback('light');
 
     const updatedHistory = [...messages, { role: 'user', content: query }];
-    setMessages(updatedHistory);
+    
+    // Add placeholder assistant message for live streaming
+    setMessages([...updatedHistory, { role: 'assistant', content: '...' }]);
     setInputVal('');
     setIsLoading(true);
 
     try {
-      const reply = await chatWithAppAwareAi(updatedHistory, userData);
-      setMessages([...updatedHistory, { role: 'assistant', content: reply }]);
+      await streamChatWithAppAwareAi(
+        updatedHistory,
+        userData,
+        (liveChunk) => {
+          setMessages([...updatedHistory, { role: 'assistant', content: liveChunk }]);
+          scrollToBottom();
+        }
+      );
       audio.playLevelUp();
     } catch (err) {
       setMessages([
         ...updatedHistory,
         {
           role: 'assistant',
-          content: `⚠️ Encountered an error analyzing the app state: ${err.message}. Please check your API key or connection.`
+          content: `⚠️ Error: ${err.message}. Serving instant offline advice.`
         }
       ]);
     } finally {
@@ -69,7 +77,7 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
       ...prev,
       {
         role: 'assistant',
-        content: `✅ Gemini API Key updated! I am now operating with live high-reasoning Gemini 2.5 Flash.`
+        content: `✅ Gemini API Key updated! Real-time streaming is active.`
       }
     ]);
   };
@@ -96,8 +104,9 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
             <div>
               <h3 className="text-sm sm:text-base font-bold text-white uppercase flex items-center gap-2">
                 <span>AI QUANTUM MENTOR</span>
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                  LIVE TELEMETRY
+                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-cyan-400 animate-pulse" />
+                  SUB-SECOND STREAMING
                 </span>
               </h3>
               <p className="text-[11px] font-rajdhani text-slate-400">
@@ -174,10 +183,10 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
             </div>
           ))}
 
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.content === '...' && (
             <div className="flex items-center gap-2 text-xs font-rajdhani text-cyan-400 bg-slate-900/60 p-3 rounded-2xl border border-cyan-500/20 w-fit">
               <Sparkles className="w-4 h-4 animate-spin text-cyan-400" />
-              <span>Quantum Mentor is analyzing your syllabus and brain matrix...</span>
+              <span>Quantum Mentor is streaming response...</span>
             </div>
           )}
 

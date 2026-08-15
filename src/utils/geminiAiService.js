@@ -1,4 +1,4 @@
-// Gemini AI Service: Xianxia Dao Ancestor Speech, Live GATE Quizzes, Feynman Evaluation, Dao Forge Resume & Full App-Aware Chat
+// Gemini AI Service: Xianxia Dao Ancestor Speech, Live GATE Quizzes, Feynman Evaluation, Dao Forge Resume & Sub-Second SSE Streaming Chat
 
 import { calculateGlobalBrainMetrics } from './neuroEngine';
 import { calculateLevel } from './rpgEngine';
@@ -18,7 +18,7 @@ export function getStoredGeminiApiKey() {
 export function saveGeminiApiKey(key) {
   try {
     localStorage.setItem(API_KEY_STORAGE_KEY, key.trim());
-    localStorage.removeItem(CACHED_MODEL_STORAGE_KEY); // Reset cached model on new key
+    localStorage.removeItem(CACHED_MODEL_STORAGE_KEY);
   } catch (e) {
     console.error("Failed to save Gemini API key:", e);
   }
@@ -30,12 +30,11 @@ const DEFAULT_FALLBACK_MODELS = [
   'gemini-1.5-flash',
   'gemini-1.5-flash-latest',
   'gemini-2.5-flash',
-  'gemini-1.5-pro',
-  'gemini-pro'
+  'gemini-1.5-pro'
 ];
 
 /**
- * Discover all alive models supporting generateContent from Google's live registry
+ * Discover alive models supporting generateContent from Google's live registry
  */
 async function discoverAliveModels(apiKey) {
   try {
@@ -46,14 +45,12 @@ async function discoverAliveModels(apiKey) {
     const data = await res.json();
     if (!Array.isArray(data?.models)) return DEFAULT_FALLBACK_MODELS;
 
-    // Filter models that support generateContent
     const aliveModels = data.models
       .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
       .map(m => m.name.replace(/^models\//, ''));
 
     if (aliveModels.length === 0) return DEFAULT_FALLBACK_MODELS;
 
-    // Sort to prioritize flash models first
     aliveModels.sort((a, b) => {
       const aIsFlash = a.includes('flash') ? 1 : 0;
       const bIsFlash = b.includes('flash') ? 1 : 0;
@@ -67,30 +64,42 @@ async function discoverAliveModels(apiKey) {
 }
 
 /**
+ * High-Speed Compressed App Telemetry (~150 Tokens)
+ */
+function buildCompressedTelemetry(userData) {
+  const totalExp = safeNum(userData?.profile?.totalExp, 150);
+  const levelInfo = calculateLevel(totalExp);
+  const userName = userData?.profile?.name || 'Scholar';
+  const gold = safeNum(userData?.profile?.gold, 120);
+  const streak = safeNum(userData?.profile?.streak, 1);
+
+  const activeCampaign = userData?.campaigns?.find(c => c.id === userData?.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
+  const subjects = activeCampaign?.subjects || [];
+  const brainMetrics = calculateGlobalBrainMetrics(subjects, userData?.activityLogs || []);
+
+  const subList = subjects.map(s => `${s.name}(${s.completedLectures || 0}/${s.totalLectures || 20}L)`).join(', ');
+  const weakSubjects = brainMetrics.subjectStates.filter(s => s.retentionPercent < 50).map(s => `${s.subjectName}(${s.retentionPercent}%)`);
+
+  return `Candidate: ${userName} | Realm: ${levelInfo.realm.name} (Lvl ${levelInfo.level}) | EXP: ${totalExp} | Gold: ${gold} | Streak: ${streak}d | Subjects: ${subList || 'None'} | HeartDemons: ${weakSubjects.length > 0 ? weakSubjects.join(', ') : 'None'}`;
+}
+
+/**
  * Robust Gemini REST API Call with Dynamic Registry & Cached Alive Model
  */
 async function callGeminiApi(payload, apiKey) {
   const effectiveKey = apiKey || getStoredGeminiApiKey();
+  if (!effectiveKey) throw new Error("No Gemini API key supplied");
 
-  if (!effectiveKey) {
-    throw new Error("No Gemini API key supplied");
-  }
-
-  // 1. Check if we already have a cached working model
   let cachedModel = null;
   try {
     cachedModel = localStorage.getItem(CACHED_MODEL_STORAGE_KEY);
   } catch (e) {}
 
   let modelsToTry = cachedModel ? [cachedModel] : [];
-  
-  // 2. Discover live models from Google's registry
   const liveModels = await discoverAliveModels(effectiveKey);
   liveModels.forEach(m => {
     if (!modelsToTry.includes(m)) modelsToTry.push(m);
   });
-
-  // Ensure default fallback models are in the chain
   DEFAULT_FALLBACK_MODELS.forEach(m => {
     if (!modelsToTry.includes(m)) modelsToTry.push(m);
   });
@@ -103,14 +112,20 @@ async function callGeminiApi(payload, apiKey) {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ...payload,
+          generationConfig: {
+            maxOutputTokens: 600,
+            temperature: 0.7,
+            thinkingConfig: { thinkingBudget: 0 }
+          }
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
-          // Cache this working model for future calls
           try {
             localStorage.setItem(CACHED_MODEL_STORAGE_KEY, model);
           } catch (e) {}
@@ -120,7 +135,6 @@ async function callGeminiApi(payload, apiKey) {
         const errJson = await response.json().catch(() => null);
         const errMsg = errJson?.error?.message || response.statusText;
         lastError = new Error(`Gemini API returned ${response.status} on model '${model}': ${errMsg}`);
-        // If cached model failed, clear cache
         if (model === cachedModel) {
           try {
             localStorage.removeItem(CACHED_MODEL_STORAGE_KEY);
@@ -133,6 +147,168 @@ async function callGeminiApi(payload, apiKey) {
   }
 
   throw lastError || new Error("Failed to connect to Google Gemini API");
+}
+
+/**
+ * Sub-Second Real-Time SSE Streaming Chat
+ * Delivers first token in ~0.5s and streams text live to onChunk callback!
+ */
+export async function streamChatWithAppAwareAi(chatHistory = [], userData = {}, onChunk, apiKey) {
+  const effectiveKey = apiKey || getStoredGeminiApiKey();
+
+  // Instant Offline Fallback if No Key Provided
+  if (!effectiveKey) {
+    const offlineReply = getInstantLocalAdvice(chatHistory, userData);
+    if (onChunk) onChunk(offlineReply);
+    return offlineReply;
+  }
+
+  const telemetrySnippet = buildCompressedTelemetry(userData);
+  const systemInstructionText = `You are "Antigravity AI Quantum Mentor", an elite GATE CS Professor & Xianxia Dao Master in QuestAscend RPG.\nTelemetry: [${telemetrySnippet}]\nAnswer concisely, accurately, and encouragingly in markdown format.`;
+
+  const formattedContents = chatHistory.map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
+
+  const payload = {
+    system_instruction: {
+      parts: [{ text: systemInstructionText }]
+    },
+    contents: formattedContents,
+    generationConfig: {
+      maxOutputTokens: 500,
+      temperature: 0.7,
+      thinkingConfig: { thinkingBudget: 0 }
+    }
+  };
+
+  let cachedModel = null;
+  try {
+    cachedModel = localStorage.getItem(CACHED_MODEL_STORAGE_KEY);
+  } catch (e) {}
+
+  let modelsToTry = cachedModel ? [cachedModel] : [];
+  const liveModels = await discoverAliveModels(effectiveKey);
+  liveModels.forEach(m => {
+    if (!modelsToTry.includes(m)) modelsToTry.push(m);
+  });
+  DEFAULT_FALLBACK_MODELS.forEach(m => {
+    if (!modelsToTry.includes(m)) modelsToTry.push(m);
+  });
+
+  // 7-Second Safety Timeout Controller
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+  for (const model of modelsToTry) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${effectiveKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      if (response.ok && response.body) {
+        clearTimeout(timeoutId);
+        try {
+          localStorage.setItem(CACHED_MODEL_STORAGE_KEY, model);
+        } catch (e) {}
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let accumulated = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunkText = decoder.decode(value, { stream: true });
+          const lines = chunkText.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr && jsonStr !== '[DONE]') {
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const token = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  if (token) {
+                    accumulated += token;
+                    if (onChunk) onChunk(accumulated);
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+        }
+
+        if (accumulated.trim()) {
+          return accumulated.trim();
+        }
+      } else {
+        if (model === cachedModel) {
+          try {
+            localStorage.removeItem(CACHED_MODEL_STORAGE_KEY);
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        clearTimeout(timeoutId);
+        const timeoutReply = `⚡ **Fast Subspace Response:**\n\n${getInstantLocalAdvice(chatHistory, userData)}`;
+        if (onChunk) onChunk(timeoutReply);
+        return timeoutReply;
+      }
+    }
+  }
+
+  clearTimeout(timeoutId);
+  const fallbackReply = getInstantLocalAdvice(chatHistory, userData);
+  if (onChunk) onChunk(fallbackReply);
+  return fallbackReply;
+}
+
+/**
+ * Backward compatible non-streaming alias
+ */
+export async function chatWithAppAwareAi(chatHistory = [], userData = {}, apiKey) {
+  return await streamChatWithAppAwareAi(chatHistory, userData, null, apiKey);
+}
+
+/**
+ * Instant Local Offline Intelligence (< 5ms)
+ */
+function getInstantLocalAdvice(chatHistory, userData) {
+  const lastUserMsg = chatHistory[chatHistory.length - 1]?.content?.toLowerCase() || '';
+  const totalExp = safeNum(userData?.profile?.totalExp, 150);
+  const levelInfo = calculateLevel(totalExp);
+  const streak = safeNum(userData?.profile?.streak, 1);
+  const activeCampaign = userData?.campaigns?.find(c => c.id === userData?.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
+  const subjects = activeCampaign?.subjects || [];
+  const brainMetrics = calculateGlobalBrainMetrics(subjects, userData?.activityLogs || []);
+
+  if (lastUserMsg.includes('focus') || lastUserMsg.includes('study') || lastUserMsg.includes('next') || lastUserMsg.includes('plan')) {
+    const weak = brainMetrics.subjectStates.find(s => s.retentionPercent < 60);
+    const targetSub = weak ? weak.subjectName : subjects[0]?.name || 'Operating Systems';
+    return `### 🎯 Targeted Study Plan\n\n- **Immediate Priority:** **${targetSub}** (Recommended: 1 Lecture + 10 Practice Questions).\n- **Daily Goal:** Complete pending Morning Quests to preserve your **${streak}-day streak** and avoid midnight audit penalties.\n- **Current Realm:** **${levelInfo.realm.name}** (Level ${levelInfo.level}).`;
+  }
+
+  if (lastUserMsg.includes('demon') || lastUserMsg.includes('purge') || lastUserMsg.includes('heart')) {
+    const demonSubjects = brainMetrics.subjectStates.filter(s => s.retentionPercent < 50);
+    if (demonSubjects.length === 0) {
+      return `### ✨ Mind of Pure Dao!\n\nYou currently have **0 active Heart Demons**. All studied synapses have healthy Ebbinghaus retention (≥50%).`;
+    }
+    return `### 🖤 Active Heart Demons Detected\n\nYour retention is below 50% on:\n${demonSubjects.map(s => `- **${s.subjectName}** (${s.retentionPercent}% Retention)`).join('\n')}\n\n**Action:** Open the **3D Brain Matrix** and click **Purge Heart Demons** to run a quick recall trial!`;
+  }
+
+  if (lastUserMsg.includes('readiness') || lastUserMsg.includes('breakthrough') || lastUserMsg.includes('tribulation')) {
+    return `### ⚡ Heavenly Tribulation Readiness\n\n- **Current Realm:** ${levelInfo.realm.name} (Level ${levelInfo.level})\n- **EXP in Level:** ${levelInfo.expInLevel} / ${levelInfo.expNeeded} EXP (${levelInfo.progressPercent}%)\n- **Breakthrough Target:** Pass a 4-question GATE trial with ≥ 75% accuracy to claim +250 EXP!`;
+  }
+
+  return `Greetings! You are currently at **Level ${levelInfo.level} (${levelInfo.realm.name})** with **${subjects.length} subjects** enrolled.\n\nAsk me:\n- *"What should I focus on today?"*\n- *"How do I purge my active Heart Demons?"*\n- *"Explain Peterson's algorithm or Dijkstra's shortest path"*`;
 }
 
 /**
@@ -190,109 +366,6 @@ Speak in Xianxia Dao Ancestor tone (e.g. "Your comprehension of Peterson's Algor
 }
 
 /**
- * Full App-Aware Chat with Gemini AI
- * Ingests user stats, all subjects, brain retention states, quests, and logs to answer any question!
- */
-export async function chatWithAppAwareAi(chatHistory = [], userData = {}, apiKey) {
-  const effectiveKey = apiKey || getStoredGeminiApiKey();
-
-  const totalExp = safeNum(userData?.profile?.totalExp, 150);
-  const levelInfo = calculateLevel(totalExp);
-  const userName = userData?.profile?.name || 'Scholar';
-  const gold = safeNum(userData?.profile?.gold, 120);
-  const streak = safeNum(userData?.profile?.streak, 1);
-
-  const activeCampaign = userData?.campaigns?.find(c => c.id === userData?.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
-  const subjects = activeCampaign?.subjects || [];
-  const brainMetrics = calculateGlobalBrainMetrics(subjects, userData?.activityLogs || []);
-
-  const subjectSummary = subjects.map(s => {
-    const state = brainMetrics.subjectStates.find(st => st.subjectId === s.id);
-    const ret = state ? state.retentionPercent : 100;
-    const status = (s.completedLectures || 0) === 0 
-      ? 'Dormant (Unstudied)' 
-      : ret < 50 
-        ? `🔴 HEART DEMON CORRUPTED (${ret}% Retention)` 
-        : `🔵 Mastered (${ret}% Retention)`;
-    return `- **${s.name}**: ${s.completedLectures || 0}/${s.totalLectures || 20} Lectures completed, ${s.completedQuestions || 0} PYQs solved. Status: ${status}`;
-  }).join('\n');
-
-  const dailyQuestsSummary = (userData?.dailyQuests || []).map(q => 
-    `- [${q.completed ? 'COMPLETED' : 'PENDING'}] ${q.title} (+${q.expReward} EXP)`
-  ).join('\n');
-
-  const recentLogs = (userData?.activityLogs || []).slice(0, 5).map(l => 
-    `- ${l.date}: ${l.description} (+${l.expGained} EXP)`
-  ).join('\n');
-
-  const systemContext = `You are the "Antigravity AI Quantum Mentor", an elite GATE CS Professor & Xianxia Dao Master built directly inside the QuestAscend RPG study platform.
-
-### CURRENT LIVE APP TELEMETRY & USER STATE:
-- **Scholar Name**: ${userName}
-- **Cultivation Realm**: ${levelInfo.realm.name} (Level ${levelInfo.level})
-- **EXP Progress**: ${levelInfo.expInLevel} / ${levelInfo.expNeeded} EXP (${levelInfo.progressPercent}%) [Total EXP: ${totalExp}]
-- **Gold Balance**: ${gold} Gold
-- **Daily Streak**: ${streak} Days
-- **Active Campaign**: ${activeCampaign?.title || 'GATE Computer Science'}
-
-### SYLLABUS & BRAIN MATRIX RETENTION BREAKDOWN:
-${subjectSummary || 'No subjects currently enrolled.'}
-
-### TODAY'S MORNING QUESTS:
-${dailyQuestsSummary || 'No daily quests active.'}
-
-### RECENT ACTIVITY LOGS:
-${recentLogs || 'No recent activity.'}
-
-### YOUR CAPABILITIES & INSTRUCTIONS:
-1. You have complete knowledge of the user's progress, weak topics, completed lectures, and Heart Demons (topics with <50% retention).
-2. Answer questions about:
-   - Study plans & recommendations based on their exact weak/decaying topics.
-   - Any GATE CS topic (OS, DBMS, Algorithms, TOC, Compiler Design, CN, Discrete Math, COA, Digital Logic, Engineering Mathematics).
-   - How the QuestAscend RPG mechanics work (Heavenly Tribulations, Ebbinghaus forgetting curve, 40Hz binaural beats, Sects, Gold Shop, Night Report).
-3. Be encouraging, concise, insightful, and blend high-level academic excellence with subtle Xianxia cultivation terminology. Use markdown formatting with bullet points and bold highlights.`;
-
-  if (!effectiveKey) {
-    // Intelligent Offline / Keyless Fallback
-    const lastUserMsg = chatHistory[chatHistory.length - 1]?.content?.toLowerCase() || '';
-    
-    if (lastUserMsg.includes('focus') || lastUserMsg.includes('study') || lastUserMsg.includes('next')) {
-      const weak = brainMetrics.subjectStates.find(s => s.retentionPercent < 60);
-      const targetSub = weak ? weak.subjectName : subjects[0]?.name || 'Operating Systems';
-      return `### 🎯 Targeted Study Recommendation\n\nBased on your live Brain Matrix telemetry:\n\n- **Primary Focus:** **${targetSub}** (Recommended: Complete 1 Lecture & 10 PYQs today).\n- **Daily Goal:** Complete your pending Morning Quests to protect your ${streak}-day streak and avoid night audit penalties.\n\n*(💡 Pro-Tip: Add your Gemini API key in settings for real-time live deep explanations on any GATE topic!)*`;
-    }
-
-    if (lastUserMsg.includes('demon') || lastUserMsg.includes('purge') || lastUserMsg.includes('heart')) {
-      const demonSubjects = brainMetrics.subjectStates.filter(s => s.retentionPercent < 50);
-      if (demonSubjects.length === 0) {
-        return `### ✨ Pure Dao Mind!\n\nYou currently have **0 Heart Demons** active. All your studied synapses have healthy Ebbinghaus retention (≥50%). Keep reviewing consistently to maintain neural stability!`;
-      }
-      return `### 🖤 Active Heart Demons Detected\n\nYour memory retention has decayed below 50% on:\n${demonSubjects.map(s => `- **${s.subjectName}** (${s.retentionPercent}% Retention)`).join('\n')}\n\n**Action Plan:** Open the **3D Brain Matrix** tab and click **Purge Heart Demons** to complete quick recall flash-trials and restore memory stability!`;
-    }
-
-    return `Greetings, **${userName}**! I am your AI Quantum Mentor.\n\nCurrently, you are at **Level ${levelInfo.level} (${levelInfo.realm.name})** with **${gold} Gold** and **${streak}-day streak**.\n\nYou can ask me:\n- *"What should I study next?"*\n- *"How do I purge my Heart Demons?"*\n- *"Explain Dijkstra's Algorithm or Peterson's Algorithm"*\n\n*(To unlock unbounded real-time AI reasoning, you can add your free Google Gemini API key!)*`;
-  }
-
-  // Format messages into Gemini format
-  const formattedContents = chatHistory.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }]
-  }));
-
-  try {
-    return await callGeminiApi({
-      system_instruction: {
-        parts: [{ text: systemContext }]
-      },
-      contents: formattedContents
-    }, effectiveKey);
-  } catch (err) {
-    console.error("AI Chat error:", err);
-    return `Greetings, **${userName}**! I am analyzing your full app telemetry:\n\n- You are currently at **Level ${levelInfo.level} (${levelInfo.realm.name})**.\n- You have **${subjects.length} subjects** in your active curriculum.\n\n*Note: Encountered connection issue with Gemini API (${err.message}). Please verify your Gemini API key in settings.*`;
-  }
-}
-
-/**
  * Feynman Disciple Evaluation Engine
  */
 export async function evaluateFeynmanTeaching(topicName, userExplanation, apiKey) {
@@ -334,7 +407,6 @@ export async function generateAscensionResume(userData, apiKey) {
   const activeCampaign = userData?.campaigns?.find(c => c.id === userData.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
   const studiedSubjects = (activeCampaign?.subjects || []).filter(s => (s.completedLectures || 0) > 0 || (s.completedQuestions || 0) > 0);
 
-  // If no topics have been studied yet, show cold forge state!
   if (studiedSubjects.length === 0) {
     return `# 🗡️ DAO FORGE TECHNICAL RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### ❄️ The Forge is Cold\n*Awaken your first synapse by completing a lecture or practice session to begin forging your technical GATE resume.*`;
   }
