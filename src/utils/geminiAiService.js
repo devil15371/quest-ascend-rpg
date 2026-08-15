@@ -5,6 +5,7 @@ import { calculateLevel } from './rpgEngine';
 import { safeNum } from './safeMath';
 
 const API_KEY_STORAGE_KEY = 'QUEST_ASCEND_GEMINI_API_KEY';
+const CACHED_MODEL_STORAGE_KEY = 'QUEST_ASCEND_ACTIVE_GEMINI_MODEL';
 
 export function getStoredGeminiApiKey() {
   try {
@@ -17,20 +18,56 @@ export function getStoredGeminiApiKey() {
 export function saveGeminiApiKey(key) {
   try {
     localStorage.setItem(API_KEY_STORAGE_KEY, key.trim());
+    localStorage.removeItem(CACHED_MODEL_STORAGE_KEY); // Reset cached model on new key
   } catch (e) {
     console.error("Failed to save Gemini API key:", e);
   }
 }
 
-const SUPPORTED_GEMINI_MODELS = [
-  'gemini-1.5-flash',
+const DEFAULT_FALLBACK_MODELS = [
+  'gemini-3.7-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-pro'
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-2.5-flash',
+  'gemini-1.5-pro',
+  'gemini-pro'
 ];
 
 /**
- * Robust Gemini REST API Call with Automatic Model Fallback
+ * Discover all alive models supporting generateContent from Google's live registry
+ */
+async function discoverAliveModels(apiKey) {
+  try {
+    const listEndpoint = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const res = await fetch(listEndpoint);
+    if (!res.ok) return DEFAULT_FALLBACK_MODELS;
+
+    const data = await res.json();
+    if (!Array.isArray(data?.models)) return DEFAULT_FALLBACK_MODELS;
+
+    // Filter models that support generateContent
+    const aliveModels = data.models
+      .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+      .map(m => m.name.replace(/^models\//, ''));
+
+    if (aliveModels.length === 0) return DEFAULT_FALLBACK_MODELS;
+
+    // Sort to prioritize flash models first
+    aliveModels.sort((a, b) => {
+      const aIsFlash = a.includes('flash') ? 1 : 0;
+      const bIsFlash = b.includes('flash') ? 1 : 0;
+      return bIsFlash - aIsFlash;
+    });
+
+    return aliveModels;
+  } catch (e) {
+    return DEFAULT_FALLBACK_MODELS;
+  }
+}
+
+/**
+ * Robust Gemini REST API Call with Dynamic Registry & Cached Alive Model
  */
 async function callGeminiApi(payload, apiKey) {
   const effectiveKey = apiKey || getStoredGeminiApiKey();
@@ -39,9 +76,28 @@ async function callGeminiApi(payload, apiKey) {
     throw new Error("No Gemini API key supplied");
   }
 
+  // 1. Check if we already have a cached working model
+  let cachedModel = null;
+  try {
+    cachedModel = localStorage.getItem(CACHED_MODEL_STORAGE_KEY);
+  } catch (e) {}
+
+  let modelsToTry = cachedModel ? [cachedModel] : [];
+  
+  // 2. Discover live models from Google's registry
+  const liveModels = await discoverAliveModels(effectiveKey);
+  liveModels.forEach(m => {
+    if (!modelsToTry.includes(m)) modelsToTry.push(m);
+  });
+
+  // Ensure default fallback models are in the chain
+  DEFAULT_FALLBACK_MODELS.forEach(m => {
+    if (!modelsToTry.includes(m)) modelsToTry.push(m);
+  });
+
   let lastError = null;
 
-  for (const model of SUPPORTED_GEMINI_MODELS) {
+  for (const model of modelsToTry) {
     try {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
       const response = await fetch(endpoint, {
@@ -53,11 +109,23 @@ async function callGeminiApi(payload, apiKey) {
       if (response.ok) {
         const data = await response.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text.trim();
+        if (text) {
+          // Cache this working model for future calls
+          try {
+            localStorage.setItem(CACHED_MODEL_STORAGE_KEY, model);
+          } catch (e) {}
+          return text.trim();
+        }
       } else {
         const errJson = await response.json().catch(() => null);
         const errMsg = errJson?.error?.message || response.statusText;
-        lastError = new Error(`Gemini API returned ${response.status}: ${errMsg}`);
+        lastError = new Error(`Gemini API returned ${response.status} on model '${model}': ${errMsg}`);
+        // If cached model failed, clear cache
+        if (model === cachedModel) {
+          try {
+            localStorage.removeItem(CACHED_MODEL_STORAGE_KEY);
+          } catch (e) {}
+        }
       }
     } catch (err) {
       lastError = err;
