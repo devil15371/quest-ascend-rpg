@@ -22,18 +22,55 @@ export function saveGeminiApiKey(key) {
   }
 }
 
+const SUPPORTED_GEMINI_MODELS = [
+  'gemini-1.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro'
+];
+
 /**
- * Generate 3 Live GATE Exam Verification Questions using Gemini 2.5 Flash API
+ * Robust Gemini REST API Call with Automatic Model Fallback
  */
-export async function generateGateQuizWithGemini(subjectName, topicHeading, apiKey) {
+async function callGeminiApi(payload, apiKey) {
   const effectiveKey = apiKey || getStoredGeminiApiKey();
 
   if (!effectiveKey) {
     throw new Error("No Gemini API key supplied");
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
+  let lastError = null;
 
+  for (const model of SUPPORTED_GEMINI_MODELS) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text.trim();
+      } else {
+        const errJson = await response.json().catch(() => null);
+        const errMsg = errJson?.error?.message || response.statusText;
+        lastError = new Error(`Gemini API returned ${response.status}: ${errMsg}`);
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Failed to connect to Google Gemini API");
+}
+
+/**
+ * Generate 3 Live GATE Exam Verification Questions using Gemini API
+ */
+export async function generateGateQuizWithGemini(subjectName, topicHeading, apiKey) {
   const prompt = `You are an ancient, supreme Xianxia GATE CS Exam Dao Ancestor. Generate 3 high-stakes multiple-choice questions for the subject "${subjectName}" on the specific chapter topic "${topicHeading}".
 Requirements:
 1. Questions must test real GATE CS concepts, formulas, or code logic.
@@ -49,20 +86,10 @@ Requirements:
 ]
 Do not include markdown formatting or backticks around JSON. Return raw JSON string only.`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
-  });
+  const rawText = await callGeminiApi({
+    contents: [{ parts: [{ text: prompt }] }]
+  }, apiKey);
 
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
   const parsedQuestions = JSON.parse(cleanedText);
 
@@ -78,27 +105,16 @@ Do not include markdown formatting or backticks around JSON. Return raw JSON str
  */
 export async function generateCoPilotAdviceWithGemini(userData, apiKey) {
   const effectiveKey = apiKey || getStoredGeminiApiKey();
-
   if (!effectiveKey) return null;
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
 
   const prompt = `You are "ANTIGRAVITY QUANTUM DAO ANCESTOR", an ancient, wise, slightly arrogant Xianxia Immortal guiding a GATE CS student.
 User Details: Name: ${userData?.profile?.name || 'Mortal'}, Level: ${userData?.profile?.totalExp ? Math.floor(Math.sqrt(userData.profile.totalExp / 100)) + 1 : 1}, Streak: ${userData?.profile?.streak || 1} days.
 Speak in Xianxia Dao Ancestor tone (e.g. "Your comprehension of Peterson's Algorithm is adequate, Mortal. But your understanding of Semaphores is flawed. Meditate on it."). Give 2 short, powerful sentences!`;
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+    return await callGeminiApi({
+      contents: [{ parts: [{ text: prompt }] }]
+    }, effectiveKey);
   } catch (e) {
     console.error("Co-Pilot Gemini error:", e);
     return null;
@@ -189,8 +205,6 @@ ${recentLogs || 'No recent activity.'}
     return `Greetings, **${userName}**! I am your AI Quantum Mentor.\n\nCurrently, you are at **Level ${levelInfo.level} (${levelInfo.realm.name})** with **${gold} Gold** and **${streak}-day streak**.\n\nYou can ask me:\n- *"What should I study next?"*\n- *"How do I purge my Heart Demons?"*\n- *"Explain Dijkstra's Algorithm or Peterson's Algorithm"*\n\n*(To unlock unbounded real-time AI reasoning, you can add your free Google Gemini API key!)*`;
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
-
   // Format messages into Gemini format
   const formattedContents = chatHistory.map(msg => ({
     role: msg.role === 'assistant' ? 'model' : 'user',
@@ -198,25 +212,12 @@ ${recentLogs || 'No recent activity.'}
   }));
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: systemContext }]
-        },
-        contents: formattedContents
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API returned ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (!reply) throw new Error("Empty response from AI");
-    return reply;
+    return await callGeminiApi({
+      system_instruction: {
+        parts: [{ text: systemContext }]
+      },
+      contents: formattedContents
+    }, effectiveKey);
   } catch (err) {
     console.error("AI Chat error:", err);
     return `Greetings, **${userName}**! I am analyzing your full app telemetry:\n\n- You are currently at **Level ${levelInfo.level} (${levelInfo.realm.name})**.\n- You have **${subjects.length} subjects** in your active curriculum.\n\n*Note: Encountered connection issue with Gemini API (${err.message}). Please verify your Gemini API key in settings.*`;
@@ -227,17 +228,6 @@ ${recentLogs || 'No recent activity.'}
  * Feynman Disciple Evaluation Engine
  */
 export async function evaluateFeynmanTeaching(topicName, userExplanation, apiKey) {
-  const effectiveKey = apiKey || getStoredGeminiApiKey();
-  if (!effectiveKey) {
-    return {
-      passed: true,
-      discipleFeedback: "Master, your explanation is wise! My comprehension of the Dao has increased.",
-      score: 85
-    };
-  }
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
-
   const prompt = `You are a Junior Xianxia AI Disciple learning Computer Science topic "${topicName}".
 Your Senior Master gave you this explanation:
 "${userExplanation}"
@@ -251,17 +241,10 @@ Evaluate if this explanation is simple, intuitive, and accurate. Return ONLY JSO
 Do not format with backticks.`;
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+    const rawText = await callGeminiApi({
+      contents: [{ parts: [{ text: prompt }] }]
+    }, apiKey);
 
-    if (!response.ok) throw new Error("Gemini API error");
-    const data = await response.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(cleanedText);
   } catch (e) {
@@ -277,7 +260,6 @@ Do not format with backticks.`;
  * Generate Verified Ascension Resume (Dao Forge) bound strictly to studied subjects
  */
 export async function generateAscensionResume(userData, apiKey) {
-  const effectiveKey = apiKey || getStoredGeminiApiKey();
   const name = userData?.profile?.name || 'Candidate';
   const level = userData?.profile?.totalExp ? Math.floor(Math.sqrt(userData.profile.totalExp / 100)) + 1 : 1;
 
@@ -291,28 +273,14 @@ export async function generateAscensionResume(userData, apiKey) {
 
   const domainBullets = studiedSubjects.map(s => `- **${s.name}**: Mastered ${s.completedLectures}/${s.totalLectures} Lectures and ${s.completedQuestions} Practice PYQs`).join('\n');
 
-  if (!effectiveKey) {
-    return `# 🗡️ DAO FORGE TECHNICAL RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### Mastered Technical Domains\n${domainBullets}\n\n*Verified by QuestAscend Neural Skills Graph*`;
-  }
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
-
   const prompt = `Generate a high-impact technical GATE CS & Software Engineer Resume for candidate "${name}", Level ${level} Scholar.
 Include these STRICTLY VERIFIED mastered subjects:\n${domainBullets}\n
 Format as Markdown with sections: Executive Summary, Mastered Technical Domains, and GATE CS Readiness Rating. Make it sound professional and elite!`;
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    if (!response.ok) throw new Error("Gemini API error");
-    const data = await response.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    return await callGeminiApi({
+      contents: [{ parts: [{ text: prompt }] }]
+    }, apiKey);
   } catch (e) {
     return `# 🗡️ DAO FORGE TECHNICAL RESUME\n\n**Candidate:** ${name}\n**Cultivation Rank:** Level ${level} Scholar\n\n### Mastered Technical Domains\n${domainBullets}`;
   }
