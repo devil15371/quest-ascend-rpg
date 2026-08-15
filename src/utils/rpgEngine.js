@@ -1,4 +1,4 @@
-// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Resonance Perks, Cultivation Windows, and Guild Master AI Quotes
+// RPG Engine: Non-Linear Cultivation Realm EXP Formula, Clamped Stat Resonance Perks, Cultivation Windows, and Guild Master AI Quotes
 
 import { safeNum } from './safeMath';
 
@@ -129,22 +129,23 @@ export function isEarlyBirdTime(cultivationWindow = 'EARLY_BIRD') {
 
 /**
  * Calculate Gameplay Stat Resonance Perks from Hero Stats
+ * Every perk is strictly clamped with Math.min & Math.max to enforce advertised caps.
  */
 export function calculateStatResonances(stats = {}) {
-  const intVal = safeNum(stats.int, 20);
-  const wisVal = safeNum(stats.wis, 20);
-  const dexVal = safeNum(stats.dex, 20);
-  const vitVal = safeNum(stats.vit, 20);
+  const intVal = safeNum(stats?.int, 20);
+  const wisVal = safeNum(stats?.wis, 20);
+  const dexVal = safeNum(stats?.dex, 20);
+  const vitVal = safeNum(stats?.vit, 20);
 
   return {
-    // INT slows Ebbinghaus forgetting curve decay speed by up to 25%
-    memoryDecayResistancePercent: Math.min(25, Math.floor(intVal / 40)),
-    // WIS grants +1% bonus Lecture EXP per 40 WIS (up to +20%)
-    lectureExpBonusPercent: Math.min(20, Math.floor(wisVal / 40)),
-    // DEX grants +1% bonus Gold from PYQ practice per 40 DEX (up to +25%)
-    pyqGoldBonusPercent: Math.min(25, Math.floor(dexVal / 40)),
-    // VIT grants +1% bonus Focus stamina EXP in Purge sessions per 40 VIT (up to +25%)
-    purgeExpBonusPercent: Math.min(25, Math.floor(vitVal / 40))
+    // INT slows Ebbinghaus forgetting curve decay speed by up to 25% (strictly clamped)
+    memoryDecayResistancePercent: Math.min(25, Math.max(0, Math.floor(Math.max(0, intVal - 20) / 8))),
+    // WIS grants +1% bonus Lecture EXP per 8 WIS above base 20 (strictly clamped at max +20%)
+    lectureExpBonusPercent: Math.min(20, Math.max(0, Math.floor(Math.max(0, wisVal - 20) / 8))),
+    // DEX grants +1% bonus Gold from PYQ practice per 8 DEX above base 20 (strictly clamped at max +25%)
+    pyqGoldBonusPercent: Math.min(25, Math.max(0, Math.floor(Math.max(0, dexVal - 20) / 8))),
+    // VIT grants +1% bonus Focus stamina EXP in Purge sessions per 8 VIT above base 20 (strictly clamped at max +25%)
+    purgeExpBonusPercent: Math.min(25, Math.max(0, Math.floor(Math.max(0, vitVal - 20) / 8)))
   };
 }
 

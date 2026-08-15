@@ -20,6 +20,10 @@ export const INITIAL_USER_STATE = {
     lastActiveDate: new Date().toISOString().split('T')[0],
     restDayActiveUntil: null,
     earlyBirdUnlockedToday: false,
+    cultivationWindow: "EARLY_BIRD",
+    equippedTitle: "",
+    equippedAura: "",
+    equippedSkin: "",
     stats: {
       int: 45,
       wis: 30,
@@ -96,6 +100,10 @@ function deepMergeState(saved, defaults) {
       totalExp: safeNum(profile.totalExp, defaults.profile.totalExp),
       gold: safeNum(profile.gold, defaults.profile.gold),
       streak: safeNum(profile.streak, defaults.profile.streak),
+      cultivationWindow: profile.cultivationWindow || defaults.profile.cultivationWindow || 'EARLY_BIRD',
+      equippedTitle: profile.equippedTitle || '',
+      equippedAura: profile.equippedAura || '',
+      equippedSkin: profile.equippedSkin || '',
       stats: {
         int: safeNum(stats.int, defaults.profile.stats.int),
         wis: safeNum(stats.wis, defaults.profile.stats.wis),
@@ -106,7 +114,7 @@ function deepMergeState(saved, defaults) {
     campaigns: Array.isArray(saved.campaigns) && saved.campaigns.length > 0 ? saved.campaigns : defaults.campaigns,
     dailyQuests: Array.isArray(saved.dailyQuests) ? saved.dailyQuests : defaults.dailyQuests,
     activityLogs: Array.isArray(saved.activityLogs) ? saved.activityLogs : defaults.activityLogs,
-    inventory: Array.isArray(saved.inventory) ? saved.inventory : defaults.inventory,
+    inventory: Array.isArray(saved.inventory) ? saved.inventory : (defaults.inventory || []),
     shopItems: Array.isArray(saved.shopItems) && saved.shopItems.length > 0 ? saved.shopItems : defaults.shopItems
   };
 }
@@ -138,7 +146,11 @@ export function saveUserData(data) {
         ...data.profile,
         totalExp: safeNum(data.profile.totalExp, 150),
         gold: safeNum(data.profile.gold, 120),
-        streak: safeNum(data.profile.streak, 1)
+        streak: safeNum(data.profile.streak, 1),
+        cultivationWindow: data.profile.cultivationWindow || 'EARLY_BIRD',
+        equippedTitle: data.profile.equippedTitle || '',
+        equippedAura: data.profile.equippedAura || '',
+        equippedSkin: data.profile.equippedSkin || ''
       }
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedData));
@@ -159,62 +171,59 @@ function performDailyAudit(state) {
       let updatedStreak = safeNum(state.profile.streak, 1);
       const penaltyLogs = [];
 
-      if (!isRestDay && Array.isArray(state.dailyQuests)) {
-        const uncompletedQuests = state.dailyQuests.filter(q => !q.completed && q.dateSet !== today);
-        if (uncompletedQuests.length > 0) {
-          const penaltyExp = uncompletedQuests.length * 25;
-          updatedExp = Math.max(0, updatedExp - penaltyExp);
+      // Check if uncompleted daily quests trigger penalty
+      const uncompletedQuests = (state.dailyQuests || []).filter(q => !q.completed);
 
-          penaltyLogs.push({
-            id: 'log_penalty_' + Date.now(),
-            date: today,
-            type: 'PENALTY',
-            description: `Daily Audit: -${penaltyExp} EXP penalty for ${uncompletedQuests.length} uncompleted morning task(s)`,
-            expGained: -penaltyExp,
-            timestamp: Date.now()
-          });
-        }
+      if (uncompletedQuests.length > 0 && !isRestDay) {
+        // Apply Heart Demon penalty: -50 EXP per incomplete quest, min 0
+        const penalty = uncompletedQuests.length * 50;
+        updatedExp = Math.max(0, updatedExp - penalty);
+        updatedStreak = 0; // Break streak
 
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        if (lastActive !== yesterday) {
-          updatedStreak = 1;
-        }
+        penaltyLogs.push({
+          id: 'log_audit_' + Date.now(),
+          date: today,
+          type: 'PENALTY',
+          description: `Night Audit Penalty: ${uncompletedQuests.length} uncompleted quest(s) corrupted cultivation. -${penalty} EXP & Streak reset.`,
+          expGained: -penalty,
+          timestamp: Date.now()
+        });
+      } else if (isRestDay) {
+        penaltyLogs.push({
+          id: 'log_rest_' + Date.now(),
+          date: today,
+          type: 'BUFF',
+          description: 'Rest Day Shield protected cultivation progress and preserved streak.',
+          expGained: 0,
+          timestamp: Date.now()
+        });
       }
 
-      const updatedState = {
+      // Reset daily quests for the new day
+      const refreshedQuests = (state.dailyQuests || []).map(q => ({
+        ...q,
+        completed: false,
+        dateSet: today
+      }));
+
+      return {
         ...state,
         profile: {
           ...state.profile,
           totalExp: updatedExp,
           streak: updatedStreak,
           lastActiveDate: today,
-          earlyBirdUnlockedToday: false
+          earlyBirdUnlockedToday: false,
+          restDayActiveUntil: isRestDay ? state.profile.restDayActiveUntil : null
         },
-        dailyQuests: (state.dailyQuests || []).map(q => ({
-          ...q,
-          completed: false,
-          dateSet: today
-        })),
+        dailyQuests: refreshedQuests,
         activityLogs: [...penaltyLogs, ...(state.activityLogs || [])]
       };
-
-      saveUserData(updatedState);
-      return updatedState;
     }
 
     return state;
   } catch (e) {
-    console.error("Error in daily audit:", e);
+    console.error("Daily audit check failed:", e);
     return state;
   }
-}
-
-export function exportDataAsJSON(data) {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `QuestAscend_Backup_${new Date().toISOString().split('T')[0]}.json`);
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
 }
