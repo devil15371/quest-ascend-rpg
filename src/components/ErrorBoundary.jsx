@@ -1,11 +1,11 @@
 import React from 'react';
-import { Cpu, RefreshCw } from 'lucide-react';
+import { Cpu, RefreshCw, AlertTriangle } from 'lucide-react';
 import { INITIAL_USER_STATE, saveUserData } from '../utils/storage';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -14,10 +14,14 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("Uncaught React Error in QuestAscend:", error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   handleResetState = () => {
-    saveUserData(INITIAL_USER_STATE);
+    try {
+      localStorage.clear();
+      saveUserData(INITIAL_USER_STATE);
+    } catch (e) {}
     window.location.reload();
   };
 
@@ -34,6 +38,15 @@ export default class ErrorBoundary extends React.Component {
             <p className="text-xs font-rajdhani text-slate-300">
               A temporary state mismatch occurred. Tap below to refresh your session safely.
             </p>
+
+            {this.state.error && (
+              <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-left text-[11px] font-mono text-red-300 max-h-28 overflow-y-auto">
+                <span className="font-bold flex items-center gap-1 text-red-400">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Details:
+                </span>
+                {this.state.error.toString()}
+              </div>
+            )}
 
             <div className="space-y-2 pt-2">
               <button

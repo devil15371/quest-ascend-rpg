@@ -2,7 +2,7 @@
 
 import { calculateGlobalBrainMetrics } from './neuroEngine';
 import { calculateLevel } from './rpgEngine';
-import { safeNum } from './storage';
+import { safeNum } from './safeMath';
 
 const API_KEY_STORAGE_KEY = 'QUEST_ASCEND_GEMINI_API_KEY';
 

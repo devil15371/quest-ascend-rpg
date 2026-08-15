@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShoppingBag, Coins, Shield, Gamepad2, Pizza, Sparkles, Plus, Check, PackageCheck } from 'lucide-react';
-import { safeNum } from '../utils/storage';
+import { safeNum } from '../utils/safeMath';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 

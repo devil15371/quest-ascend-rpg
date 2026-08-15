@@ -2,13 +2,11 @@
 
 import { PRESET_CAMPAIGNS } from './presets';
 import { DEFAULT_SHOP_ITEMS } from './rpgEngine';
+import { safeNum } from './safeMath';
+
+export { safeNum };
 
 const STORAGE_KEY = 'QUEST_ASCEND_USER_DATA_V1';
-
-export const safeNum = (val, defaultVal = 0) => {
-  const num = Number(val);
-  return Number.isFinite(num) ? num : defaultVal;
-};
 
 export const INITIAL_USER_STATE = {
   profile: {

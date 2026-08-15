@@ -5,36 +5,50 @@ import { EXP_TABLE, isEarlyBirdTime } from '../utils/rpgEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
 export default function SubjectTracker({ userData, setUserData, onOpenAddSubject }) {
-  const activeCampaign = userData.campaigns.find(c => c.id === userData.activeCampaignId) || userData.campaigns[0];
+  const activeCampaign = userData?.campaigns?.find(c => c.id === userData?.activeCampaignId) || userData?.campaigns?.[0] || { subjects: [] };
 
   const handleIncrement = (subjectId, type, count = 1) => {
     audio.playExpGain();
     triggerHapticFeedback('medium');
 
-    const multiplier = isEarlyBirdTime() ? (1 + EXP_TABLE.EARLY_BIRD_BONUS) : 1;
+    const earlyBirdBonus = typeof EXP_TABLE?.EARLY_BIRD_BONUS === 'number' ? EXP_TABLE.EARLY_BIRD_BONUS : 0.25;
+    const multiplier = isEarlyBirdTime() ? (1 + earlyBirdBonus) : 1;
     let baseExp = 0;
     let baseGold = 0;
     let statKey = '';
     let statVal = 0;
     let logDesc = '';
 
+    const getTableValues = (entry, defaultExp, defaultGold, defaultStat) => {
+      if (typeof entry === 'number') return { exp: entry, gold: Math.round(entry / 2), stat: defaultStat, val: 1 };
+      return {
+        exp: entry?.exp || defaultExp,
+        gold: entry?.gold || defaultGold,
+        stat: entry?.stat || defaultStat,
+        val: entry?.val || 1
+      };
+    };
+
     if (type === 'lecture') {
-      baseExp = EXP_TABLE.LECTURE.exp * count;
-      baseGold = EXP_TABLE.LECTURE.gold * count;
-      statKey = EXP_TABLE.LECTURE.stat;
-      statVal = EXP_TABLE.LECTURE.val * count;
+      const vals = getTableValues(EXP_TABLE?.LECTURE, 40, 20, 'wis');
+      baseExp = vals.exp * count;
+      baseGold = vals.gold * count;
+      statKey = vals.stat;
+      statVal = vals.val * count;
       logDesc = `Completed ${count} Lecture(s)`;
     } else if (type === 'revision') {
-      baseExp = EXP_TABLE.REVISION.exp * count;
-      baseGold = EXP_TABLE.REVISION.gold * count;
-      statKey = EXP_TABLE.REVISION.stat;
-      statVal = EXP_TABLE.REVISION.val * count;
+      const vals = getTableValues(EXP_TABLE?.REVISION, 30, 15, 'int');
+      baseExp = vals.exp * count;
+      baseGold = vals.gold * count;
+      statKey = vals.stat;
+      statVal = vals.val * count;
       logDesc = `Completed ${count} Revision Session(s)`;
     } else if (type === 'question') {
-      baseExp = EXP_TABLE.QUESTION.exp * count;
-      baseGold = EXP_TABLE.QUESTION.gold * count;
-      statKey = EXP_TABLE.QUESTION.stat;
-      statVal = EXP_TABLE.QUESTION.val * count;
+      const vals = getTableValues(EXP_TABLE?.QUESTION, 3, 1, 'dex');
+      baseExp = vals.exp * count;
+      baseGold = vals.gold * count;
+      statKey = vals.stat;
+      statVal = vals.val * count;
       logDesc = `Solved ${count} Practice Question(s)`;
     }
 

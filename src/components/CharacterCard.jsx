@@ -1,6 +1,6 @@
 import React from 'react';
 import { calculateLevel } from '../utils/rpgEngine';
-import { safeNum } from '../utils/storage';
+import { safeNum } from '../utils/safeMath';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 import { Shield, Zap, Flame, Award, ChevronRight, Cpu } from 'lucide-react';

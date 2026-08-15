@@ -1,5 +1,7 @@
 // RPG Engine: Non-Linear Cultivation Realm EXP Formula, Stat Scaling, Night Lock, and Guild Master AI Quotes
 
+import { safeNum } from './safeMath';
+
 /**
  * Cultivation Realm Definitions
  */
@@ -52,11 +54,11 @@ export const DEFAULT_SHOP_ITEMS = [
 ];
 
 export const EXP_TABLE = {
-  LECTURE: 40,
-  QUESTION: 3,
-  REVISION: 30,
-  DAILY_QUEST: 80,
-  EARLY_BIRD_BONUS: 1.25
+  LECTURE: { exp: 40, gold: 20, stat: 'wis', val: 2 },
+  QUESTION: { exp: 3, gold: 1, stat: 'dex', val: 1 },
+  REVISION: { exp: 30, gold: 15, stat: 'int', val: 2 },
+  DAILY_QUEST: { exp: 80, gold: 40 },
+  EARLY_BIRD_BONUS: 0.25
 };
 
 export function isEarlyBirdTime() {
@@ -86,7 +88,7 @@ export function getExpForLevel(level) {
  * Calculate Level, Current Realm, and EXP Progress %
  */
 export function calculateLevel(totalExp = 0) {
-  const validExp = Math.max(0, Number(totalExp) || 0);
+  const validExp = safeNum(totalExp, 0);
   let level = 1;
 
   while (validExp >= getExpForLevel(level + 1)) {
@@ -108,7 +110,7 @@ export function calculateLevel(totalExp = 0) {
     expInLevel,
     expNeeded,
     progressPercent,
-    realm
+    realm: realm || CULTIVATION_REALMS[0]
   };
 }
 
@@ -145,7 +147,7 @@ export const GUILD_MASTER_QUOTES = [
 ];
 
 export function generateGuildMasterMessage(userData) {
-  const totalExp = (userData && userData.totalExp) || (userData && userData.profile && userData.profile.totalExp) || 0;
+  const totalExp = safeNum((userData && userData.totalExp) || (userData && userData.profile && userData.profile.totalExp), 0);
   const name = (userData && userData.name) || (userData && userData.profile && userData.profile.name) || 'Hunter';
   const levelInfo = calculateLevel(totalExp);
 
