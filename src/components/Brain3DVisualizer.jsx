@@ -132,26 +132,27 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
     if (!mountRef.current) return;
 
     let scene, camera, renderer, controls, animId;
-    const disposables = [];
+    const geometries = []; // Track all geometries for complete disposal
+    const materials = [];  // Track all materials for complete disposal
 
     try {
       const width = mountRef.current.clientWidth || 600;
       const height = mountRef.current.clientHeight || 480;
 
-      // 1. Scene & Crisp Sci-Fi Atmospheric Fog
       scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x020617, 0.0006); // Crisp low-density fog preserving vibrant colors
+      // Add subtle fog for depth
+      scene.fog = new THREE.FogExp2(0x020617, 0.0006);
 
       camera = new THREE.PerspectiveCamera(50, width / height, 1, 3000);
-      camera.position.set(0, 50, 370); // Tightened camera position to fill frame with high-impact visuals
+      camera.position.set(0, 55, 380);
 
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, failIfMajorPerformanceCaveat: false });
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
       renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       
-      // ACES Filmic Tone Mapping for bloom & emissive glow
+      // Tone mapping makes emissive materials glow
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.35;
+      renderer.toneMappingExposure = 1.3;
 
       mountRef.current.innerHTML = '';
       mountRef.current.appendChild(renderer.domElement);
@@ -162,86 +163,87 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
       controls.rotateSpeed = 0.8;
       controls.zoomSpeed = 1.2;
       controls.maxDistance = 900;
-      controls.minDistance = 60;
+      controls.minDistance = 80;
 
-      // 2. High-Impact Cinematic Multi-Point Lighting Rig
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      // 🌟 VISUAL UPGRADE 1: Cinematic Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
       scene.add(ambientLight);
-
-      const cyanRimLight = new THREE.DirectionalLight(0x06b6d4, 3.2);
-      cyanRimLight.position.set(200, 300, 200);
+      
+      const cyanRimLight = new THREE.PointLight(0x06b6d4, 2.8, 600);
+      cyanRimLight.position.set(200, 180, 200);
       scene.add(cyanRimLight);
 
-      const purpleCoreLight = new THREE.PointLight(0xa855f7, 4.0, 400);
-      purpleCoreLight.position.set(0, 0, 0);
+      const purpleCoreLight = new THREE.PointLight(0xa855f7, 3.5, 400);
+      purpleCoreLight.position.set(-200, -100, -200);
       scene.add(purpleCoreLight);
 
-      const pinkAccentLight = new THREE.PointLight(0xec4899, 2.5, 300);
-      pinkAccentLight.position.set(-150, -100, 100);
+      const pinkAccentLight = new THREE.PointLight(0xec4899, 2.0, 300);
+      pinkAccentLight.position.set(-150, 100, 100);
       scene.add(pinkAccentLight);
 
       const brainGroup = new THREE.Group();
       scene.add(brainGroup);
 
-      // 3. Dual-Layer Holographic Brain Wireframe Shell
-      // Outer Cyan Shell
-      const outerBrainGeo = new THREE.IcosahedronGeometry(160, 3);
-      const outerBrainMat = new THREE.MeshStandardMaterial({
-        color: 0x06b6d4,
+      // Holographic Brain Shell (Dual Layer)
+      const brainMeshGeo = new THREE.IcosahedronGeometry(160, 3);
+      geometries.push(brainMeshGeo);
+      const brainMeshMat = new THREE.MeshStandardMaterial({
+        color: 0x06b6d4, 
         emissive: 0x06b6d4,
-        emissiveIntensity: 0.45,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.16,
-        roughness: 0.2,
-        metalness: 0.8
+        emissiveIntensity: 0.35,
+        wireframe: true, 
+        transparent: true, 
+        opacity: 0.14,
+        roughness: 0.3,
+        metalness: 0.7
       });
-      const outerBrainMesh = new THREE.Mesh(outerBrainGeo, outerBrainMat);
-      outerBrainMesh.scale.set(0.95, 1.0, 1.3);
-      brainGroup.add(outerBrainMesh);
-      disposables.push(outerBrainGeo, outerBrainMat);
+      materials.push(brainMeshMat);
+      const brainMesh = new THREE.Mesh(brainMeshGeo, brainMeshMat);
+      brainMesh.scale.set(0.95, 1.0, 1.3);
+      brainGroup.add(brainMesh);
 
-      // Inner Purple Shell for multi-dimensional depth
+      // Inner Shell
       const innerBrainGeo = new THREE.IcosahedronGeometry(120, 2);
+      geometries.push(innerBrainGeo);
       const innerBrainMat = new THREE.MeshStandardMaterial({
         color: 0xa855f7,
         emissive: 0xa855f7,
-        emissiveIntensity: 0.35,
+        emissiveIntensity: 0.3,
         wireframe: true,
         transparent: true,
-        opacity: 0.09,
-        roughness: 0.3,
-        metalness: 0.8
+        opacity: 0.08
       });
+      materials.push(innerBrainMat);
       const innerBrainMesh = new THREE.Mesh(innerBrainGeo, innerBrainMat);
       innerBrainMesh.scale.set(0.95, 1.0, 1.3);
       brainGroup.add(innerBrainMesh);
-      disposables.push(innerBrainGeo, innerBrainMat);
 
-      // 4. The "Dao Core" (Pulsing Nascent Soul Energy Reactor)
-      const daoCoreGeo = new THREE.SphereGeometry(22, 32, 32);
-      const daoCoreMat = new THREE.MeshStandardMaterial({
+      // 🌟 VISUAL UPGRADE 2: The "Dao Core" (Center Energy Source)
+      const coreGeo = new THREE.SphereGeometry(30, 32, 32);
+      geometries.push(coreGeo);
+      const coreMat = new THREE.MeshStandardMaterial({
         color: 0xa855f7,
         emissive: 0xa855f7,
-        emissiveIntensity: 1.5,
-        roughness: 0.1,
-        metalness: 0.9,
+        emissiveIntensity: 1.2,
+        metalness: 0.1,
+        roughness: 0.2,
         transparent: true,
-        opacity: 0.9
+        opacity: 0.75
       });
-      const daoCoreMesh = new THREE.Mesh(daoCoreGeo, daoCoreMat);
-      brainGroup.add(daoCoreMesh);
-      disposables.push(daoCoreGeo, daoCoreMat);
+      materials.push(coreMat);
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      brainGroup.add(coreMesh);
 
-      // Dao Core Halo
+      // Core Halo Sprite
       const { sprite: coreHalo, material: coreHaloMat } = getOrCreateGlowSprite('#a855f7');
       coreHalo.scale.set(110, 110, 1);
       brainGroup.add(coreHalo);
-      if (coreHaloMat) disposables.push(coreHaloMat);
+      if (coreHaloMat) materials.push(coreHaloMat);
 
-      // 5. 300 Ambient Floating Qi Particles (Fills black void with living energy)
+      // 🌌 Ambient Floating Qi Particles (300 particles)
       const particleCount = 300;
       const partGeo = new THREE.BufferGeometry();
+      geometries.push(partGeo);
       const partPositions = new Float32Array(particleCount * 3);
       for (let i = 0; i < particleCount * 3; i += 3) {
         partPositions[i] = (Math.random() - 0.5) * 650;
@@ -256,50 +258,53 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         opacity: 0.6,
         blending: THREE.AdditiveBlending
       });
+      materials.push(partMat);
       const qiParticleField = new THREE.Points(partGeo, partMat);
       brainGroup.add(qiParticleField);
-      disposables.push(partGeo, partMat);
 
-      // 6. Radiant Emissive Semaphore Sword with Attached Sweeping Light
+      // 🗡️ VISUAL UPGRADE 3: Metallic Emissive Semaphore Sword
       const swordGroup = new THREE.Group();
       
       const bladeGeo = new THREE.ConeGeometry(5.5, 48, 4);
+      geometries.push(bladeGeo);
       const bladeMat = new THREE.MeshStandardMaterial({ 
-        color: 0x22d3ee,
-        emissive: 0x06b6d4,
-        emissiveIntensity: 1.3,
-        metalness: 0.1,
-        roughness: 0.2
+        color: 0x22d3ee, 
+        emissive: 0x06b6d4, 
+        emissiveIntensity: 1.2, 
+        metalness: 0.2, 
+        roughness: 0.2 
       });
+      materials.push(bladeMat);
       const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
       bladeMesh.position.y = 24;
       swordGroup.add(bladeMesh);
-      disposables.push(bladeGeo, bladeMat);
 
       const guardGeo = new THREE.BoxGeometry(22, 3.5, 5.5);
+      geometries.push(guardGeo);
       const guardMat = new THREE.MeshStandardMaterial({ 
-        color: 0xf59e0b,
-        emissive: 0xf59e0b,
-        emissiveIntensity: 1.0,
-        metalness: 0.2,
-        roughness: 0.3
+        color: 0xf59e0b, 
+        emissive: 0xf59e0b, 
+        emissiveIntensity: 0.9, 
+        metalness: 0.3, 
+        roughness: 0.3 
       });
+      materials.push(guardMat);
       const guardMesh = new THREE.Mesh(guardGeo, guardMat);
       swordGroup.add(guardMesh);
-      disposables.push(guardGeo, guardMat);
 
       const hiltGeo = new THREE.CylinderGeometry(2.2, 2.2, 14, 8);
+      geometries.push(hiltGeo);
       const hiltMat = new THREE.MeshStandardMaterial({ 
-        color: 0x0f172a,
-        roughness: 0.5,
-        metalness: 0.3
+        color: 0x0f172a, 
+        metalness: 0.4, 
+        roughness: 0.5 
       });
+      materials.push(hiltMat);
       const hiltMesh = new THREE.Mesh(hiltGeo, hiltMat);
       hiltMesh.position.y = -7;
       swordGroup.add(hiltMesh);
-      disposables.push(hiltGeo, hiltMat);
 
-      // Sweeping dynamic light attached to the sword blade
+      // Sweeping dynamic point light attached to the sword
       const swordLight = new THREE.PointLight(0x06b6d4, 3.5, 200);
       swordLight.position.set(0, 20, 0);
       swordGroup.add(swordLight);
@@ -307,6 +312,7 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
       swordGroup.position.set(200, 0, 0);
       brainGroup.add(swordGroup);
 
+      // Subject / Topic Node Generation Loop
       const allGraphNodes = [];
       const actionPotentialPulses = [];
       const heartDemonNodes = [];
@@ -331,9 +337,9 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           region.basePos.z + (Math.random() - 0.5) * 30
         );
 
-        // Increased Hub Radius from 14 -> 18 for instant readability
         const hubRadius = 18;
         const hubGeo = new THREE.SphereGeometry(hubRadius, 24, 24);
+        geometries.push(hubGeo);
         const hubMat = new THREE.MeshStandardMaterial({ 
           color: new THREE.Color(themeColor),
           emissive: new THREE.Color(themeColor),
@@ -343,16 +349,15 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           transparent: true, 
           opacity: isDormant ? 0.4 : isCorrupted ? 1.0 : 0.95 
         });
+        materials.push(hubMat);
         const hubMesh = new THREE.Mesh(hubGeo, hubMat);
         hubMesh.position.copy(hubPos);
-        disposables.push(hubGeo, hubMat);
 
-        // Add Radiant Bloom Glow Halo behind the hub
         if (!isDormant) {
           const { sprite: hubGlow, material: hubGlowMat } = getOrCreateGlowSprite(themeColor);
           hubGlow.scale.set(75, 75, 1);
           hubMesh.add(hubGlow);
-          if (hubGlowMat) disposables.push(hubGlowMat);
+          if (hubGlowMat) materials.push(hubGlowMat);
         }
 
         const hubLabelText = isDormant 
@@ -365,7 +370,7 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         hubTextSprite.position.set(0, hubRadius + 15, 0);
         hubTextSprite.visible = true;
         hubMesh.add(hubTextSprite);
-        if (hubSpriteMat) disposables.push(hubSpriteMat);
+        if (hubSpriteMat) materials.push(hubSpriteMat);
 
         hubMesh.userData = {
           name: subject.name,
@@ -393,6 +398,7 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
 
           const topicRadius = 9;
           const topicGeo = new THREE.SphereGeometry(topicRadius, 16, 16);
+          geometries.push(topicGeo);
           const topicMat = new THREE.MeshStandardMaterial({ 
             color: new THREE.Color(themeColor),
             emissive: new THREE.Color(themeColor),
@@ -402,16 +408,16 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
             transparent: true, 
             opacity: isDormant ? 0.3 : 0.9 
           });
+          materials.push(topicMat);
           const topicMesh = new THREE.Mesh(topicGeo, topicMat);
           topicMesh.position.copy(topicPos);
-          disposables.push(topicGeo, topicMat);
 
           const { sprite: topicTextSprite, material: topicSpriteMat } = getOrCreateTextSprite(`⚡ ${topicObj.topicName}`, themeColor);
           topicTextSprite.scale.set(44, 11, 1);
           topicTextSprite.position.set(0, topicRadius + 10, 0);
           topicTextSprite.visible = false;
           topicMesh.add(topicTextSprite);
-          if (topicSpriteMat) disposables.push(topicSpriteMat);
+          if (topicSpriteMat) materials.push(topicSpriteMat);
 
           topicMesh.userData = {
             name: topicObj.topicName,
@@ -433,39 +439,41 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           const curve1 = new THREE.CubicBezierCurve3(hubPos, controlPt1, controlPt1, topicPos);
           const pts1 = curve1.getPoints(20);
           const lineGeo1 = new THREE.BufferGeometry().setFromPoints(pts1);
+          geometries.push(lineGeo1);
           const lineMat1 = new THREE.LineBasicMaterial({ 
             color: new THREE.Color(themeColor), 
             transparent: true, 
             opacity: isDormant ? 0.18 : 0.6 
           });
+          materials.push(lineMat1);
           const line1 = new THREE.Line(lineGeo1, lineMat1);
           line1.userData = { nodeA: hubMesh, nodeB: topicMesh, defaultOpacity: isDormant ? 0.18 : 0.6 };
           brainGroup.add(line1);
-          disposables.push(lineGeo1, lineMat1);
 
           hubMesh.userData.connections.push(topicMesh);
           topicMesh.userData.connections.push(hubMesh);
 
           if (!isDormant) {
             const pulseGeo1 = new THREE.SphereGeometry(2.6, 8, 8);
+            geometries.push(pulseGeo1);
             const pulseMat1 = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            materials.push(pulseMat1);
             const pulse1 = new THREE.Mesh(pulseGeo1, pulseMat1);
             brainGroup.add(pulse1);
-            disposables.push(pulseGeo1, pulseMat1);
 
             actionPotentialPulses.push({ mesh: pulse1, curve: curve1, progress: Math.random() });
           }
         });
       });
 
-      // 7. Throttled Raycaster for smooth 60 FPS interaction
+      // 🖱️ PERFORMANCE FIX: Throttled Raycaster
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
       let lastRaycastTime = 0;
 
       const onPointerMove = (e) => {
-        const now = performance.now();
-        if (now - lastRaycastTime < 45) return;
+        const now = Date.now();
+        if (now - lastRaycastTime < 50) return; // Only run every 50ms (20 FPS for raycasting)
         lastRaycastTime = now;
 
         if (!renderer || !mountRef.current) return;
@@ -530,19 +538,16 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
       domElement.addEventListener('click', onClickNode);
 
       let swordAngle = 0;
+      const clock = new THREE.Clock();
 
-      // 8. 60FPS Ambient Animation Loop
       const animate = () => {
         animId = requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        
         if (controls) controls.update();
         if (brainGroup) brainGroup.rotation.y += 0.0012;
 
-        // Pulsing Dao Core & Halo
-        const corePulse = 1 + Math.sin(Date.now() * 0.003) * 0.08;
-        daoCoreMesh.scale.set(corePulse, corePulse, corePulse);
-        coreHalo.scale.set(110 * corePulse, 110 * corePulse, 1);
-
-        // Orbiting Semaphore Sword with Sweeping Light
+        // Smooth Orbiting Semaphore Sword
         swordAngle += 0.015;
         swordGroup.position.x = Math.cos(swordAngle) * 210;
         swordGroup.position.z = Math.sin(swordAngle) * 210;
@@ -551,12 +556,18 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
         // Subtle slow rotation of Qi particle field
         qiParticleField.rotation.y += 0.0004;
 
-        // Pulse Heart Demon Corrupted Nodes
+        // Pulse Heart Demon Red Shaders
         heartDemonNodes.forEach(mesh => {
           mesh.scale.setScalar(1 + Math.sin(Date.now() * 0.008) * 0.15);
         });
 
-        // Travel Action Potential Photons along Bézier curves
+        // Pulse the Dao Core
+        if (coreMesh) {
+          const corePulse = 1 + Math.sin(Date.now() * 0.002) * 0.05;
+          coreMesh.scale.setScalar(corePulse);
+          coreHalo.scale.set(110 * corePulse, 110 * corePulse, 1);
+        }
+
         actionPotentialPulses.forEach(pulse => {
           pulse.progress += 0.006;
           if (pulse.progress > 1) pulse.progress = 0;
@@ -569,7 +580,7 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
 
       animate();
 
-      // 9. Zero-Memory-Leak Teardown
+      // 🧹 CRITICAL FIX: Proper Memory Cleanup
       return () => {
         if (animId) cancelAnimationFrame(animId);
         if (domElement) {
@@ -577,18 +588,22 @@ export default function Brain3DVisualizer({ userData, onOpenPurgeState, onOpenFe
           domElement.removeEventListener('click', onClickNode);
         }
         if (mountRef.current) mountRef.current.innerHTML = '';
-        if (controls) controls.dispose();
         
-        disposables.forEach(d => {
-          if (d && typeof d.dispose === 'function') d.dispose();
+        // Dispose ALL tracked geometries and materials to prevent mobile crashes
+        geometries.forEach(g => {
+          if (g && typeof g.dispose === 'function') g.dispose();
         });
-
+        materials.forEach(m => {
+          if (m && typeof m.dispose === 'function') m.dispose();
+        });
+        
+        if (controls) controls.dispose();
         if (renderer) renderer.dispose();
       };
     } catch (err) {
       console.warn("Brain3DVisualizer fallback mode:", err);
     }
-  }, []);
+  }, [userData]);
 
   return (
     <div className="space-y-6">
