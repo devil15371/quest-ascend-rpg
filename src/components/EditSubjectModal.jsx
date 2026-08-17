@@ -1,22 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sliders, Check, BookOpen, HelpCircle, RotateCcw } from 'lucide-react';
+import { X, Sliders, Check, BookOpen, HelpCircle, RotateCcw, FileText, Zap } from 'lucide-react';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 import { safeNum } from '../utils/safeMath';
 
 export default function EditSubjectModal({ isOpen, onClose, subject, setUserData }) {
   const [totalLectures, setTotalLectures] = useState(25);
-  const [targetQuestions, setTargetQuestions] = useState(200);
   const [completedLectures, setCompletedLectures] = useState(0);
+  
+  const [totalDpps, setTotalDpps] = useState(20);
+  const [completedDpps, setCompletedDpps] = useState(0);
+
+  const [targetQuestions, setTargetQuestions] = useState(150);
   const [completedQuestions, setCompletedQuestions] = useState(0);
+
+  const [targetPyqs, setTargetPyqs] = useState(100);
+  const [completedPyqs, setCompletedPyqs] = useState(0);
+
   const [completedRevisions, setCompletedRevisions] = useState(0);
 
   useEffect(() => {
     if (subject) {
       setTotalLectures(subject.totalLectures || 25);
-      setTargetQuestions(subject.targetQuestions || 200);
       setCompletedLectures(subject.completedLectures || 0);
+
+      setTotalDpps(subject.totalDpps || 20);
+      setCompletedDpps(subject.completedDpps || 0);
+
+      setTargetQuestions(subject.targetQuestions || 150);
       setCompletedQuestions(subject.completedQuestions || 0);
+
+      setTargetPyqs(subject.targetPyqs || 100);
+      setCompletedPyqs(subject.completedPyqs || 0);
+
       setCompletedRevisions(subject.completedRevisions || 0);
     }
   }, [subject, isOpen]);
@@ -29,9 +45,17 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
     triggerHapticFeedback('medium');
 
     const updatedTotalLectures = Math.max(1, safeNum(totalLectures, 25));
-    const updatedTargetQuestions = Math.max(1, safeNum(targetQuestions, 200));
     const updatedCompletedLectures = Math.max(0, safeNum(completedLectures, 0));
+
+    const updatedTotalDpps = Math.max(1, safeNum(totalDpps, 20));
+    const updatedCompletedDpps = Math.max(0, safeNum(completedDpps, 0));
+
+    const updatedTargetQuestions = Math.max(1, safeNum(targetQuestions, 150));
     const updatedCompletedQuestions = Math.max(0, safeNum(completedQuestions, 0));
+
+    const updatedTargetPyqs = Math.max(1, safeNum(targetPyqs, 100));
+    const updatedCompletedPyqs = Math.max(0, safeNum(completedPyqs, 0));
+
     const updatedCompletedRevisions = Math.max(0, safeNum(completedRevisions, 0));
 
     setUserData(prev => {
@@ -43,9 +67,13 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
           return {
             ...s,
             totalLectures: updatedTotalLectures,
-            targetQuestions: updatedTargetQuestions,
             completedLectures: updatedCompletedLectures,
+            totalDpps: updatedTotalDpps,
+            completedDpps: updatedCompletedDpps,
+            targetQuestions: updatedTargetQuestions,
             completedQuestions: updatedCompletedQuestions,
+            targetPyqs: updatedTargetPyqs,
+            completedPyqs: updatedCompletedPyqs,
             completedRevisions: updatedCompletedRevisions
           };
         });
@@ -63,8 +91,8 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-fade-in font-orbitron">
-      <div className="cyber-panel max-w-md w-full rounded-3xl p-6 border-2 border-cyan-500/60 shadow-2xl relative bg-slate-950/95 cyber-hud-brackets">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-fade-in font-orbitron overflow-y-auto">
+      <div className="cyber-panel max-w-lg w-full rounded-3xl p-6 border-2 border-cyan-500/60 shadow-2xl relative bg-slate-950/95 cyber-hud-brackets my-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
@@ -80,24 +108,24 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           
           {/* Lectures Target Section */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-cyan-500/30 space-y-2">
+          <div className="p-3 rounded-2xl bg-slate-900/80 border border-cyan-500/30 space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400">
               <BookOpen className="w-4 h-4" />
-              <span>LECTURE TARGETS</span>
+              <span>1. LECTURE TARGETS</span>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="text-[10px] text-slate-400 block mb-1">Total Target Lectures</label>
+                <label className="text-[10px] text-slate-400 block mb-1">Target Lectures</label>
                 <input
                   type="number"
                   value={totalLectures}
                   onChange={(e) => setTotalLectures(e.target.value)}
                   min="1"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400"
                   required
                 />
               </div>
@@ -109,7 +137,41 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
                   value={completedLectures}
                   onChange={(e) => setCompletedLectures(e.target.value)}
                   min="0"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* DPP Target Section */}
+          <div className="p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+              <FileText className="w-4 h-4" />
+              <span>2. DPP (DAILY PRACTICE PROBLEMS)</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Total Target DPPs</label>
+                <input
+                  type="number"
+                  value={totalDpps}
+                  onChange={(e) => setTotalDpps(e.target.value)}
+                  min="1"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-amber-300 font-bold focus:outline-none focus:border-amber-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Completed DPPs</label>
+                <input
+                  type="number"
+                  value={completedDpps}
+                  onChange={(e) => setCompletedDpps(e.target.value)}
+                  min="0"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
                   required
                 />
               </div>
@@ -117,21 +179,55 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
           </div>
 
           {/* Practice Questions Target Section */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 space-y-2">
+          <div className="p-3 rounded-2xl bg-slate-900/80 border border-emerald-500/30 space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
               <HelpCircle className="w-4 h-4" />
-              <span>PRACTICE QUESTION TARGETS</span>
+              <span>3. PRACTICE QUESTIONS</span>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="text-[10px] text-slate-400 block mb-1">Total Target PYQs</label>
+                <label className="text-[10px] text-slate-400 block mb-1">Target Questions</label>
                 <input
                   type="number"
                   value={targetQuestions}
                   onChange={(e) => setTargetQuestions(e.target.value)}
                   min="1"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Questions Solved</label>
+                <input
+                  type="number"
+                  value={completedQuestions}
+                  onChange={(e) => setCompletedQuestions(e.target.value)}
+                  min="0"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-400"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* GATE PYQ Target Section */}
+          <div className="p-3 rounded-2xl bg-slate-900/80 border border-blue-500/30 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400">
+              <Zap className="w-4 h-4" />
+              <span>4. GATE PREVIOUS YEAR QUESTIONS (PYQs)</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Target PYQs</label>
+                <input
+                  type="number"
+                  value={targetPyqs}
+                  onChange={(e) => setTargetPyqs(e.target.value)}
+                  min="1"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-blue-300 font-bold focus:outline-none focus:border-blue-400"
                   required
                 />
               </div>
@@ -140,10 +236,10 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
                 <label className="text-[10px] text-slate-400 block mb-1">Solved PYQs</label>
                 <input
                   type="number"
-                  value={completedQuestions}
-                  onChange={(e) => setCompletedQuestions(e.target.value)}
+                  value={completedPyqs}
+                  onChange={(e) => setCompletedPyqs(e.target.value)}
                   min="0"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-400"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-blue-400"
                   required
                 />
               </div>
@@ -151,10 +247,10 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
           </div>
 
           {/* Revisions Section */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-purple-500/30 space-y-2">
+          <div className="p-3 rounded-2xl bg-slate-900/80 border border-purple-500/30 space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400">
               <RotateCcw className="w-4 h-4" />
-              <span>REVISION ROUNDS</span>
+              <span>5. REVISION ROUNDS</span>
             </div>
             <div>
               <label className="text-[10px] text-slate-400 block mb-1">Completed Revision Sessions</label>
@@ -163,7 +259,7 @@ export default function EditSubjectModal({ isOpen, onClose, subject, setUserData
                 value={completedRevisions}
                 onChange={(e) => setCompletedRevisions(e.target.value)}
                 min="0"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-purple-300 font-bold focus:outline-none focus:border-purple-400"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-purple-300 font-bold focus:outline-none focus:border-purple-400"
                 required
               />
             </div>

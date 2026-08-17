@@ -102,7 +102,9 @@ export const DEFAULT_SHOP_ITEMS = [
  */
 export const EXP_TABLE = {
   LECTURE: { exp: 50, gold: 20, stat: 'wis', val: 2 },
-  QUESTION: { exp: 10, gold: 1, stat: 'dex', val: 1 }, // 10 PYQs = 100 EXP, 10 Gold, 10 DEX
+  DPP: { exp: 60, gold: 25, stat: 'dex', val: 3 },
+  QUESTION: { exp: 10, gold: 1, stat: 'dex', val: 1 },
+  PYQ: { exp: 10, gold: 1, stat: 'dex', val: 1 },
   REVISION: { exp: 35, gold: 15, stat: 'int', val: 2 },
   DAILY_QUEST: { exp: 80, gold: 40 },
   TRIBULATION: { exp: 250, gold: 100 },

@@ -4,7 +4,7 @@ export const PRESET_CAMPAIGNS = {
   gate_cs: {
     id: "gate_cs",
     name: "GATE Computer Science 2027 Arc",
-    description: "Complete preparation campaign for GATE CS & IT including Math, Core CS, and PYQs.",
+    description: "Complete preparation campaign for GATE CS & IT including Math, Core CS, DPPs, Practice Questions, and PYQs.",
     subjects: [
       {
         id: "subj_math",
@@ -14,9 +14,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Calculator",
         totalLectures: 25,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 20,
+        completedDpps: 0,
         targetQuestions: 200,
+        completedQuestions: 0,
+        targetPyqs: 100,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "Linear Algebra, Calculus, Probability, Discrete Math"
       },
       {
@@ -27,9 +31,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Code",
         totalLectures: 35,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 25,
+        completedDpps: 0,
         targetQuestions: 300,
+        completedQuestions: 0,
+        targetPyqs: 150,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "Trees, Graphs, Dynamic Programming, Sorting, Hash tables"
       },
       {
@@ -40,9 +48,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Cpu",
         totalLectures: 24,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 18,
+        completedDpps: 0,
         targetQuestions: 180,
+        completedQuestions: 0,
+        targetPyqs: 100,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "Process Synchronization, Deadlocks, Memory Management, File Systems"
       },
       {
@@ -53,9 +65,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Database",
         totalLectures: 20,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 16,
+        completedDpps: 0,
         targetQuestions: 150,
+        completedQuestions: 0,
+        targetPyqs: 80,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "ER Diagrams, Relational Algebra, SQL, Normalization, Transactions"
       },
       {
@@ -66,9 +82,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Network",
         totalLectures: 22,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 18,
+        completedDpps: 0,
         targetQuestions: 160,
+        completedQuestions: 0,
+        targetPyqs: 90,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "OSI Layers, IP Addressing, TCP/UDP, Flow Control, Routing"
       },
       {
@@ -79,9 +99,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Binary",
         totalLectures: 28,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 22,
+        completedDpps: 0,
         targetQuestions: 200,
+        completedQuestions: 0,
+        targetPyqs: 110,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "DFA/NFA, Context-Free Grammars, Turing Machines, Parsing, Syntax Trees"
       },
       {
@@ -92,9 +116,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "HardDrive",
         totalLectures: 20,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 15,
+        completedDpps: 0,
         targetQuestions: 150,
+        completedQuestions: 0,
+        targetPyqs: 80,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "Pipelining, Cache Memory, Machine Instructions, ALU, Addressing Modes"
       }
     ]
@@ -112,9 +140,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Layout",
         totalLectures: 30,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 20,
+        completedDpps: 0,
         targetQuestions: 100,
+        completedQuestions: 0,
+        targetPyqs: 50,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "Hooks, State Management, SSR, Styling, Performance"
       },
       {
@@ -125,9 +157,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Server",
         totalLectures: 25,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 15,
+        completedDpps: 0,
         targetQuestions: 80,
+        completedQuestions: 0,
+        targetPyqs: 40,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "REST APIs, GraphQL, Authentication, Caching, Event Loops"
       },
       {
@@ -138,9 +174,13 @@ export const PRESET_CAMPAIGNS = {
         icon: "Layers",
         totalLectures: 20,
         completedLectures: 0,
-        completedRevisions: 0,
-        completedQuestions: 0,
+        totalDpps: 12,
+        completedDpps: 0,
         targetQuestions: 60,
+        completedQuestions: 0,
+        targetPyqs: 30,
+        completedPyqs: 0,
+        completedRevisions: 0,
         notes: "Load Balancing, Sharding, Message Queues, CAP Theorem"
       }
     ]
