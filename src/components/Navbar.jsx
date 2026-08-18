@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Volume2, VolumeX, Download, Cpu, ChevronDown, Moon, Lock, Key, Music, Users, FileText, Flame, Sparkles } from 'lucide-react';
 import { audio } from '../utils/audioEngine';
 import { binauralEngine } from '../utils/binauralEngine';
 import { isNightReportUnlocked } from '../utils/rpgEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
+
+function getLockCountdown() {
+  const now = new Date();
+  const target = new Date();
+  target.setHours(2, 0, 0, 0);
+  if (now.getHours() >= 2) {
+    target.setDate(target.getDate() + 1);
+  }
+  const diffMs = target - now;
+  const diffHrs = Math.floor(diffMs / 3600000);
+  const diffMins = Math.floor((diffMs % 3600000) / 60000);
+  return `${diffHrs}h ${diffMins}m`;
+}
 
 export default function Navbar({
   userData,
@@ -18,6 +31,15 @@ export default function Navbar({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [binauralActive, setBinauralActive] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Live 10-second ticker to re-evaluate real-time clock automatically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   const nightUnlocked = isNightReportUnlocked();
 
@@ -70,14 +92,14 @@ export default function Navbar({
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* Solid 2:00 AM Night Report Lock */}
+          {/* Solid 2:00 AM Night Report Lock with Live Ticker */}
           {nightUnlocked ? (
             <button
               onClick={onOpenNightReport}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase active:scale-95 transition"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase active:scale-95 transition animate-pulse"
             >
-              <Moon className="w-4 h-4 text-amber-300 animate-pulse" />
-              <span className="hidden sm:inline">Night Report</span>
+              <Moon className="w-4 h-4 text-amber-300" />
+              <span className="hidden sm:inline">Night Report Active</span>
             </button>
           ) : (
             <div 
@@ -85,11 +107,11 @@ export default function Navbar({
                 triggerHapticFeedback('heavy');
                 audio.playError?.();
               }}
-              className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed select-none shadow-inner opacity-75"
-              title="🔒 SOLID LOCK: Night Audit Report sealed until 2:00 AM"
+              className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed select-none shadow-inner opacity-85"
+              title={`🔒 SOLID LOCK: Night Audit opens at 2:00 AM (${getLockCountdown()} remaining)`}
             >
               <Lock className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden sm:inline">🔒 2:00 AM Lock</span>
+              <span className="hidden sm:inline">🔒 2:00 AM ({getLockCountdown()})</span>
             </div>
           )}
 
@@ -97,6 +119,7 @@ export default function Navbar({
           <button
             onClick={toggleMute}
             className="p-2 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:text-cyan-400 transition"
+            title="Toggle Ambient Audio"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
           </button>
@@ -105,44 +128,54 @@ export default function Navbar({
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:border-cyan-400 transition text-xs font-bold flex items-center gap-1.5"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:text-cyan-400 transition flex items-center gap-1 text-xs font-bold"
             >
-              <span>Menu</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <span>⚙️</span>
+              <ChevronDown className="w-3.5 h-3.5" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-60 bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 text-xs font-orbitron space-y-1">
+              <div className="absolute right-0 mt-2 w-64 bg-slate-950 border border-cyan-500/40 rounded-2xl p-2 shadow-2xl space-y-1 z-50 text-xs animate-fade-in cyber-hud-brackets">
+                
                 <button
                   onClick={toggleBinaural}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 font-bold flex items-center gap-2"
+                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between transition ${
+                    binauralActive 
+                      ? 'bg-purple-950 border border-purple-500/50 text-purple-300 font-bold' 
+                      : 'hover:bg-slate-900 text-slate-300'
+                  }`}
                 >
-                  <Music className="w-4 h-4 text-purple-400" />
-                  <span>{binauralActive ? 'Stop 40Hz Beats' : '🎵 40Hz Gamma Beats'}</span>
+                  <span className="flex items-center gap-2">
+                    <Music className="w-4 h-4 text-purple-400" />
+                    <span>40Hz Binaural Waves</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-cyan-400">
+                    {binauralActive ? 'ACTIVE' : 'OFF'}
+                  </span>
                 </button>
 
                 <button
                   onClick={() => { setDropdownOpen(false); onOpenTribulation(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 font-bold flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-amber-300 font-bold flex items-center gap-2"
                 >
-                  <Flame className="w-4 h-4 text-red-500" />
-                  <span>⚡ Heavenly Tribulation Trial</span>
-                </button>
-
-                <button
-                  onClick={() => { setDropdownOpen(false); onOpenSectGuild(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 font-bold flex items-center gap-2"
-                >
-                  <Users className="w-4 h-4 text-cyan-400" />
-                  <span>🚩 Cultivation Sect Guilds</span>
+                  <Flame className="w-4 h-4 text-amber-400" />
+                  <span>Heavenly Tribulation</span>
                 </button>
 
                 <button
                   onClick={() => { setDropdownOpen(false); onOpenAscensionResume(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 font-bold flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
                 >
-                  <FileText className="w-4 h-4 text-amber-400" />
-                  <span>📜 Dao Forge Technical Resume</span>
+                  <FileText className="w-4 h-4 text-cyan-400" />
+                  <span>Dao Forge Resume</span>
+                </button>
+
+                <button
+                  onClick={() => { setDropdownOpen(false); onOpenSectGuild(); }}
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4 text-pink-400" />
+                  <span>Sect Guild Hall</span>
                 </button>
 
                 <button
