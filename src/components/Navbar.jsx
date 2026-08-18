@@ -18,9 +18,8 @@ export default function Navbar({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [binauralActive, setBinauralActive] = useState(false);
-  const [devOverride, setDevOverride] = useState(false);
 
-  const nightUnlocked = isNightReportUnlocked(devOverride);
+  const nightUnlocked = isNightReportUnlocked();
 
   const toggleMute = () => {
     const muted = audio.toggleMute();
@@ -71,11 +70,11 @@ export default function Navbar({
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* Night Report Trigger / Lock Status */}
+          {/* Solid 2:00 AM Night Report Lock */}
           {nightUnlocked ? (
             <button
               onClick={onOpenNightReport}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase active:scale-95 transition"
             >
               <Moon className="w-4 h-4 text-amber-300 animate-pulse" />
               <span className="hidden sm:inline">Night Report</span>
@@ -83,16 +82,14 @@ export default function Navbar({
           ) : (
             <div 
               onClick={() => {
-                if (window.confirm("Night Report unlocks after 2:00 AM. Unlock dev test mode?")) {
-                  setDevOverride(true);
-                  onOpenNightReport();
-                }
+                triggerHapticFeedback('heavy');
+                audio.playError?.();
               }}
-              className="px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:border-purple-500/50 hover:text-purple-300 transition"
-              title="Unlocks after 2:00 AM"
+              className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed select-none shadow-inner opacity-75"
+              title="🔒 SOLID LOCK: Night Audit Report sealed until 2:00 AM"
             >
-              <Lock className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">2:00 AM Lock</span>
+              <Lock className="w-3.5 h-3.5 text-slate-600" />
+              <span className="hidden sm:inline">🔒 2:00 AM Lock</span>
             </div>
           )}
 
