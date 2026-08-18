@@ -187,9 +187,9 @@ export default function Navbar({
                 </button>
 
                 <a
-                  href="https://github.com/devil15371/quest-ascend-rpg/releases"
-                  target="_blank"
-                  rel="noreferrer"
+                  href="https://github.com/devil15371/quest-ascend-rpg/releases/download/v1.0.0/QuestAscend-RPG.apk"
+                  download="QuestAscend-RPG.apk"
+                  onClick={() => setDropdownOpen(false)}
                   className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2 text-xs font-bold"
                 >
                   <Download className="w-4 h-4 text-cyan-400" />
