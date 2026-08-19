@@ -70,22 +70,20 @@ export default function Navbar({
   };
 
   return (
-    <nav className="cyber-panel border-b border-cyan-500/30 px-4 py-3 bg-slate-950/90 backdrop-blur-xl sticky top-0 z-40 font-orbitron">
+    <nav className="border-b border-slate-800 px-4 py-3 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
         {/* Brand Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-400 via-purple-500 to-pink-500 p-0.5 shadow-lg shadow-cyan-500/30 animate-pulse">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <Cpu className="w-5 h-5 text-cyan-400" />
-            </div>
+          <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-cyan-400">
+            <Cpu className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-base font-black text-white tracking-widest flex items-center gap-1.5">
+            <h1 className="text-sm font-orbitron font-bold text-white tracking-wider flex items-center gap-1.5">
               <span>QUESTASCEND</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-500/40">RPG</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-900 text-slate-400 border border-slate-800 font-mono">RPG</span>
             </h1>
-            <p className="text-[10px] font-rajdhani text-slate-400 tracking-wider">GATE PREP & LIFE RPG SYSTEM</p>
+            <p className="text-[10px] text-slate-400">GATE CS & Adaptive Memory Matrix</p>
           </div>
         </div>
 
@@ -96,10 +94,10 @@ export default function Navbar({
           {nightUnlocked ? (
             <button
               onClick={onOpenNightReport}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 uppercase active:scale-95 transition animate-pulse"
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition"
             >
-              <Moon className="w-4 h-4 text-amber-300" />
-              <span className="hidden sm:inline">Night Report Active</span>
+              <Moon className="w-3.5 h-3.5 text-amber-300" />
+              <span className="hidden sm:inline">Night Report</span>
             </button>
           ) : (
             <div 
@@ -107,56 +105,56 @@ export default function Navbar({
                 triggerHapticFeedback('heavy');
                 audio.playError?.();
               }}
-              className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed select-none shadow-inner opacity-85"
-              title={`🔒 SOLID LOCK: Night Audit opens at 2:00 AM (${getLockCountdown()} remaining)`}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 text-xs font-medium flex items-center gap-1.5 cursor-not-allowed select-none"
+              title={`Locked until 2:00 AM (${getLockCountdown()} remaining)`}
             >
               <Lock className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden sm:inline">🔒 2:00 AM ({getLockCountdown()})</span>
+              <span className="hidden sm:inline text-[11px] font-mono">2:00 AM ({getLockCountdown()})</span>
             </div>
           )}
 
           {/* Sound Toggle */}
           <button
             onClick={toggleMute}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:text-cyan-400 transition"
-            title="Toggle Ambient Audio"
+            className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition"
+            title="Toggle Audio"
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+            {isMuted ? <VolumeX className="w-4 h-4 text-slate-600" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
           </button>
 
-          {/* Streamlined Menu Dropdown */}
+          {/* Menu Dropdown */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:text-cyan-400 transition flex items-center gap-1 text-xs font-bold"
+              className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1 text-xs font-medium"
             >
-              <span>⚙️</span>
+              <span>Settings</span>
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-slate-950 border border-cyan-500/40 rounded-2xl p-2 shadow-2xl space-y-1 z-50 text-xs animate-fade-in cyber-hud-brackets">
+              <div className="absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-800 rounded-xl p-1.5 shadow-2xl space-y-1 z-50 text-xs animate-fade-in">
                 
                 <button
                   onClick={toggleBinaural}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between transition ${
+                  className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition ${
                     binauralActive 
-                      ? 'bg-purple-950 border border-purple-500/50 text-purple-300 font-bold' 
-                      : 'hover:bg-slate-900 text-slate-300'
+                      ? 'bg-purple-950/80 border border-purple-500/40 text-purple-300 font-semibold' 
+                      : 'hover:bg-slate-800 text-slate-300'
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <Music className="w-4 h-4 text-purple-400" />
-                    <span>40Hz Binaural Waves</span>
+                    <span>40Hz Binaural Beats</span>
                   </span>
-                  <span className="text-[10px] font-mono text-cyan-400">
-                    {binauralActive ? 'ACTIVE' : 'OFF'}
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {binauralActive ? 'ON' : 'OFF'}
                   </span>
                 </button>
 
                 <button
                   onClick={() => { setDropdownOpen(false); onOpenTribulation(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-amber-300 font-bold flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 font-medium flex items-center gap-2"
                 >
                   <Flame className="w-4 h-4 text-amber-400" />
                   <span>Heavenly Tribulation</span>
@@ -164,7 +162,7 @@ export default function Navbar({
 
                 <button
                   onClick={() => { setDropdownOpen(false); onOpenAscensionResume(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 font-medium flex items-center gap-2"
                 >
                   <FileText className="w-4 h-4 text-cyan-400" />
                   <span>Dao Forge Resume</span>
@@ -172,7 +170,7 @@ export default function Navbar({
 
                 <button
                   onClick={() => { setDropdownOpen(false); onOpenSectGuild(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 font-medium flex items-center gap-2"
                 >
                   <Users className="w-4 h-4 text-pink-400" />
                   <span>Sect Guild Hall</span>
@@ -180,7 +178,7 @@ export default function Navbar({
 
                 <button
                   onClick={() => { setDropdownOpen(false); onOpenApiKeyModal(); }}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 font-bold flex items-center gap-2 border-t border-slate-800 pt-1.5"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 font-medium flex items-center gap-2 border-t border-slate-800 pt-1.5"
                 >
                   <Key className="w-4 h-4 text-cyan-400" />
                   <span>Setup Gemini AI Key</span>
@@ -190,17 +188,18 @@ export default function Navbar({
                   href="https://github.com/devil15371/quest-ascend-rpg/releases/download/v1.0.0/QuestAscend-RPG.apk"
                   download="QuestAscend-RPG.apk"
                   onClick={() => setDropdownOpen(false)}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2 text-xs font-bold"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center gap-2 text-xs font-medium"
                 >
                   <Download className="w-4 h-4 text-cyan-400" />
-                  <span>Download Android APK (.apk)</span>
+                  <span>Download Android APK</span>
                 </a>
 
                 <button
                   onClick={handleExportData}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-900 text-slate-300 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center gap-2"
                 >
-                  <span>💾 Backup Save Data (.json)</span>
+                  <FileText className="w-4 h-4 text-slate-400" />
+                  <span>Backup Save Data</span>
                 </button>
               </div>
             )}

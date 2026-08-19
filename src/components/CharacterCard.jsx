@@ -3,7 +3,7 @@ import { calculateLevel, calculateStatResonances, isCultivationBonusTime } from 
 import { safeNum } from '../utils/safeMath';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
-import { Shield, Zap, Flame, Award, ChevronRight, Cpu, Sun, Moon, Sparkles } from 'lucide-react';
+import { Brain, BookOpen, Coins, Flame, Zap, Sun, Moon, Sparkles, Shield, Award } from 'lucide-react';
 
 export default function CharacterCard({ userData, setUserData }) {
   const currentExp = safeNum(userData?.profile?.totalExp, 150);
@@ -32,82 +32,75 @@ export default function CharacterCard({ userData, setUserData }) {
   };
 
   return (
-    <div className="cyber-panel p-5 sm:p-6 rounded-3xl border-2 border-cyan-500/40 bg-slate-950/85 cyber-hud-brackets shadow-2xl relative overflow-hidden font-orbitron">
+    <div className="p-5 sm:p-6 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md relative overflow-hidden">
       
-      {/* Top Ambient Glow Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500" />
-
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         
         {/* Left: Avatar & Realm Badge */}
         <div className="flex items-center gap-4">
           <div className="relative group">
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-cyan-400 via-purple-600 to-pink-500 p-1 shadow-xl shadow-cyan-500/20 group-hover:scale-105 transition duration-300 ${equippedAura ? 'ring-4 ring-cyan-400/80 animate-pulse' : ''}`}>
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-4xl">
-                {realm.badge}
-              </div>
+            <div className={`w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-700/80 p-1 flex items-center justify-center text-3xl shadow-inner ${equippedAura ? 'ring-2 ring-cyan-400/80' : ''}`}>
+              <span>{userData?.profile?.avatar || '🧙‍♂️'}</span>
             </div>
-            <span className="absolute -bottom-2 -right-1 px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-400 text-cyan-300 font-black text-[10px] shadow">
+            <span className="absolute -bottom-2 -right-1 px-2 py-0.5 rounded-md bg-cyan-950 border border-cyan-500/50 text-cyan-300 font-mono font-bold text-[10px] shadow">
               LVL {levelInfo.level}
             </span>
           </div>
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-wider">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
                 {userData?.profile?.name || 'Hero Candidate'}
               </h2>
-              <span className={`text-xs font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-900 border ${realm.border} ${realm.color}`}>
+              <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-slate-300">
                 {realm.name}
               </span>
               {equippedTitle && (
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-950 border border-amber-500 text-amber-300 flex items-center gap-1 shadow-sm shadow-amber-500/30">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
+                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-amber-950/80 border border-amber-500/50 text-amber-300 flex items-center gap-1">
+                  <Award className="w-3 h-3 text-amber-400" />
                   {equippedTitle}
                 </span>
               )}
             </div>
-            <p className="text-xs font-rajdhani text-slate-400 mt-1">
-              Cultivation Path: GATE CS & IT • Calibrated for top-rank readiness
+            <p className="text-xs text-slate-400 mt-1">
+              Curriculum: GATE CS & IT • Adaptive Retention Matrix
             </p>
           </div>
         </div>
 
         {/* Right: EXP Arc Bar & Cultivation Window Pill */}
         <div className="w-full md:w-80 space-y-2">
-          <div className="flex justify-between text-xs font-bold">
-            <span className="text-cyan-400 flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" /> EXP PROGRESS
+          <div className="flex justify-between text-xs font-semibold">
+            <span className="text-slate-300 flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-cyan-400" /> EXP Progress
             </span>
-            <span className="text-slate-300 font-mono">
+            <span className="text-slate-400 font-mono text-[11px] tabular-nums">
               {levelInfo.expInLevel} / {levelInfo.expNeeded} ({levelInfo.progressPercent}%)
             </span>
           </div>
 
           {/* Energy Matrix Bar */}
-          <div className="w-full h-3.5 rounded-full bg-slate-900 border border-slate-800 p-0.5 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
             <div 
-              className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 transition-all duration-500 relative"
+              className="h-full rounded-full bg-cyan-400 transition-all duration-300"
               style={{ width: `${levelInfo.progressPercent}%` }}
-            >
-              <div className="absolute inset-0 bg-white/20 animate-pulse" />
-            </div>
+            />
           </div>
 
-          <div className="flex justify-between items-center text-[11px] font-rajdhani text-slate-400 pt-0.5">
-            <span>Breakthrough at LVL {realm.maxLevel + 1}</span>
-            <span className="text-amber-400 font-mono font-bold">🪙 {currentGold} GOLD</span>
+          <div className="flex justify-between items-center text-[11px] text-slate-400 pt-0.5">
+            <span>Next Realm at LVL {realm.maxLevel + 1}</span>
+            <span className="text-amber-400 font-mono font-bold tabular-nums">{currentGold} Gold</span>
           </div>
 
           {/* Cultivation Window Selector */}
-          <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[11px]">
-            <span className="text-slate-400 font-rajdhani">Peak Focus Window:</span>
+          <div className="flex items-center justify-between pt-1.5 border-t border-slate-800 text-xs">
+            <span className="text-slate-400 text-[11px]">Focus Window:</span>
             <button
               onClick={handleToggleWindow}
-              className={`px-2.5 py-1 rounded-xl text-[10px] font-orbitron font-bold flex items-center gap-1.5 transition active:scale-95 border ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition active:scale-95 border ${
                 cultivationWindow === 'EARLY_BIRD'
-                  ? 'bg-amber-950/80 border-amber-500/60 text-amber-300 shadow-sm shadow-amber-500/20'
-                  : 'bg-indigo-950/80 border-indigo-500/60 text-indigo-300 shadow-sm shadow-indigo-500/20'
+                  ? 'bg-amber-950/60 border-amber-500/40 text-amber-300'
+                  : 'bg-indigo-950/60 border-indigo-500/40 text-indigo-300'
               }`}
               title="Click to switch your +25% EXP bonus time window"
             >
@@ -123,7 +116,7 @@ export default function CharacterCard({ userData, setUserData }) {
                 </>
               )}
               {isBonusActive && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping ml-0.5" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping ml-0.5" />
               )}
             </button>
           </div>
@@ -131,61 +124,65 @@ export default function CharacterCard({ userData, setUserData }) {
 
       </div>
 
-      {/* Hero Stat Matrix Nodes with Active Gameplay Perks */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5 pt-4 border-t border-slate-800 text-xs font-orbitron font-bold">
+      {/* Hero Stat Matrix Nodes */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5 pt-4 border-t border-slate-800/80 text-xs">
         <div 
-          onMouseEnter={() => audio.playHoverSound()}
-          className="p-2.5 rounded-xl bg-slate-900/90 border border-blue-500/30 flex flex-col justify-between hover:border-blue-400 transition"
+          className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between"
           title={`INT Perk: +${perks.memoryDecayResistancePercent}% Ebbinghaus Decay Resistance`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-blue-400">🧠 INT:</span>
-            <span className="text-white font-mono">{safeNum(heroStats.int, 45)}</span>
+            <span className="text-slate-400 flex items-center gap-1">
+              <Brain className="w-3.5 h-3.5 text-blue-400" /> INT:
+            </span>
+            <span className="text-white font-mono font-bold tabular-nums">{safeNum(heroStats.int, 45)}</span>
           </div>
-          <span className="text-[9px] font-rajdhani text-blue-300/80 mt-1">
-            🛡️ +{perks.memoryDecayResistancePercent}% Memory Stability
+          <span className="text-[10px] text-blue-300/90 font-mono mt-1">
+            +{perks.memoryDecayResistancePercent}% Memory Stability
           </span>
         </div>
 
         <div 
-          onMouseEnter={() => audio.playHoverSound()}
-          className="p-2.5 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col justify-between hover:border-purple-400 transition"
+          className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between"
           title={`WIS Perk: +${perks.lectureExpBonusPercent}% Bonus Lecture EXP`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-purple-400">📚 WIS:</span>
-            <span className="text-white font-mono">{safeNum(heroStats.wis, 30)}</span>
+            <span className="text-slate-400 flex items-center gap-1">
+              <BookOpen className="w-3.5 h-3.5 text-purple-400" /> WIS:
+            </span>
+            <span className="text-white font-mono font-bold tabular-nums">{safeNum(heroStats.wis, 30)}</span>
           </div>
-          <span className="text-[9px] font-rajdhani text-purple-300/80 mt-1">
-            ⚡ +{perks.lectureExpBonusPercent}% Lecture EXP
+          <span className="text-[10px] text-purple-300/90 font-mono mt-1">
+            +{perks.lectureExpBonusPercent}% Lecture EXP
           </span>
         </div>
 
         <div 
-          onMouseEnter={() => audio.playHoverSound()}
-          className="p-2.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex flex-col justify-between hover:border-emerald-400 transition"
+          className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between"
           title={`DEX Perk: +${perks.pyqGoldBonusPercent}% Extra Gold from Practice PYQs`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-emerald-400">🎯 DEX:</span>
-            <span className="text-white font-mono">{safeNum(heroStats.dex, 25)}</span>
+            <span className="text-slate-400 flex items-center gap-1">
+              <Coins className="w-3.5 h-3.5 text-emerald-400" /> DEX:
+            </span>
+            <span className="text-white font-mono font-bold tabular-nums">{safeNum(heroStats.dex, 25)}</span>
           </div>
-          <span className="text-[9px] font-rajdhani text-emerald-300/80 mt-1">
-            🪙 +{perks.pyqGoldBonusPercent}% PYQ Gold
+          <span className="text-[10px] text-emerald-300/90 font-mono mt-1">
+            +{perks.pyqGoldBonusPercent}% Practice Gold
           </span>
         </div>
 
         <div 
-          onMouseEnter={() => audio.playHoverSound()}
-          className="p-2.5 rounded-xl bg-slate-900/90 border border-amber-500/30 flex flex-col justify-between hover:border-amber-400 transition"
+          className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between"
           title={`VIT Perk: +${perks.purgeExpBonusPercent}% Focus Purge Session Bonus`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-amber-400">⚡ VIT:</span>
-            <span className="text-white font-mono">{safeNum(heroStats.vit, 20)}</span>
+            <span className="text-slate-400 flex items-center gap-1">
+              <Flame className="w-3.5 h-3.5 text-amber-400" /> VIT:
+            </span>
+            <span className="text-white font-mono font-bold tabular-nums">{safeNum(heroStats.vit, 20)}</span>
           </div>
-          <span className="text-[9px] font-rajdhani text-amber-300/80 mt-1">
-            🔥 +{perks.purgeExpBonusPercent}% Purge Focus EXP
+          <span className="text-[10px] text-amber-300/90 font-mono mt-1">
+            +{perks.purgeExpBonusPercent}% Focus Stamina
           </span>
         </div>
       </div>
