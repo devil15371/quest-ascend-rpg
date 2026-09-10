@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Sparkles, Bot, Key, ArrowRight, RefreshCw, Layers, CheckCircle2, Flame, Brain, BookOpen, Zap } from 'lucide-react';
-import { streamChatWithAppAwareAi, getStoredGeminiApiKey, saveGeminiApiKey } from '../utils/geminiAiService';
+import { X, Send, Sparkles, Bot, ArrowRight, RefreshCw, Layers, CheckCircle2, Flame, Brain, BookOpen, Zap } from 'lucide-react';
+import { streamChatWithAppAwareAi } from '../utils/geminiAiService';
 import { audio } from '../utils/audioEngine';
 import { triggerHapticFeedback } from '../utils/mobileNative';
 
@@ -13,8 +13,6 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
   ]);
   const [inputVal, setInputVal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showKeyInput, setShowKeyInput] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState(getStoredGeminiApiKey());
   
   const messagesEndRef = useRef(null);
 
@@ -67,21 +65,6 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
     }
   };
 
-  const handleSaveKey = (e) => {
-    e.preventDefault();
-    saveGeminiApiKey(tempApiKey);
-    setShowKeyInput(false);
-    audio.playClick();
-    triggerHapticFeedback('medium');
-    setMessages(prev => [
-      ...prev,
-      {
-        role: 'assistant',
-        content: `✅ Gemini API Key updated! Real-time streaming is active.`
-      }
-    ]);
-  };
-
   const quickPrompts = [
     "🎯 What should I study next based on my progress?",
     "🖤 How do I purge my active Heart Demons?",
@@ -116,13 +99,6 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowKeyInput(!showKeyInput)}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-400 text-xs"
-              title="Configure Gemini API Key"
-            >
-              <Key className="w-4 h-4" />
-            </button>
             <button 
               onClick={onClose} 
               className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white"
@@ -131,26 +107,6 @@ export default function AiMentorChatModal({ isOpen, onClose, userData, setUserDa
             </button>
           </div>
         </div>
-
-        {/* In-Modal Key Setup Bar */}
-        {showKeyInput && (
-          <form onSubmit={handleSaveKey} className="p-3 my-2 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 flex items-center gap-2 animate-fade-in">
-            <Key className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-            <input
-              type="password"
-              placeholder="Paste Google Gemini API Key (Free)"
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
-            />
-            <button
-              type="submit"
-              className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
-            >
-              Save Key
-            </button>
-          </form>
-        )}
 
         {/* Message Feed */}
         <div className="flex-1 overflow-y-auto space-y-3.5 my-3 pr-1 scrollbar-thin scrollbar-thumb-slate-800">

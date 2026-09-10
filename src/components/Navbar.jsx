@@ -24,7 +24,6 @@ export default function Navbar({
   isMuted,
   setIsMuted,
   onOpenNightReport,
-  onOpenApiKeyModal,
   onOpenSectGuild,
   onOpenAscensionResume,
   onOpenTribulation
@@ -174,14 +173,6 @@ export default function Navbar({
                 >
                   <Users className="w-4 h-4 text-pink-400" />
                   <span>Sect Guild Hall</span>
-                </button>
-
-                <button
-                  onClick={() => { setDropdownOpen(false); onOpenApiKeyModal(); }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 font-medium flex items-center gap-2 border-t border-slate-800 pt-1.5"
-                >
-                  <Key className="w-4 h-4 text-cyan-400" />
-                  <span>Setup Gemini AI Key</span>
                 </button>
 
                 <a

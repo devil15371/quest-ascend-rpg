@@ -13,7 +13,6 @@ import MobileBottomNav from './components/MobileBottomNav';
 import ThreeBackground from './components/ThreeBackground';
 import Brain3DVisualizer from './components/Brain3DVisualizer';
 import NightReportModal from './components/NightReportModal';
-import ApiKeyModal from './components/ApiKeyModal';
 import HeavenlyTribulationModal from './components/HeavenlyTribulationModal';
 import FeynmanDiscipleModal from './components/FeynmanDiscipleModal';
 import PurgeStateModal from './components/PurgeStateModal';
@@ -36,7 +35,6 @@ export default function App() {
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isAddQuestOpen, setIsAddQuestOpen] = useState(false);
   const [isNightReportOpen, setIsNightReportOpen] = useState(false);
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isTribulationOpen, setIsTribulationOpen] = useState(false);
   const [isFeynmanOpen, setIsFeynmanOpen] = useState(false);
   const [isPurgeStateOpen, setIsPurgeStateOpen] = useState(false);
@@ -70,7 +68,6 @@ export default function App() {
         setIsMuted={setIsMuted}
         onOpenLevelUp={() => setIsLevelUpOpen(true)}
         onOpenNightReport={() => setIsNightReportOpen(true)}
-        onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         onOpenSectGuild={() => setIsSectGuildOpen(true)}
         onOpenAscensionResume={() => setIsAscensionResumeOpen(true)}
         onOpenTribulation={() => setIsTribulationOpen(true)}
@@ -230,11 +227,6 @@ export default function App() {
         onClose={() => setIsNightReportOpen(false)}
         userData={userData}
         setUserData={setUserData}
-      />
-
-      <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onClose={() => setIsApiKeyModalOpen(false)}
       />
 
       <HeavenlyTribulationModal
