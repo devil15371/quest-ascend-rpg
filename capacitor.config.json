@@ -5,7 +5,7 @@
   "bundledWebRuntime": false,
   "server": {
     "url": "https://devil15371.github.io/quest-ascend-rpg/",
-    "cleartext": true,
+    "cleartext": false,
     "androidScheme": "https"
   },
   "plugins": {
